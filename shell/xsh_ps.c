@@ -42,7 +42,7 @@ shellcmd xsh_ps(int nargs, char *args[])
 		   "Pid", "Name", "State", "Prio", "Ppid", "Stack Base",
 		   "Stack Ptr", "Stack Size", "Time elapsed (ms)");
 
-	printf("%3s %-16s %5s %4s %4s %10s %-10s %10s\n",
+	printf("%3s %-16s %5s %4s %4s %10s %-10s %10s %17s\n",
 		   "---", "----------------", "-----", "----", "----",
 		   "----------", "----------", "----------", "-----------------");
 

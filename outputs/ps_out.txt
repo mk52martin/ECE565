@@ -1,0 +1,9 @@
+Pid Name             State Prio Ppid Stack Base Stack Ptr  Stack Size Time elapsed (ms)
+--- ---------------- ----- ---- ---- ---------- ---------- ---------- -----------------
+  0 prnull           ready    0    0 0x005FDFFC 0x00FFFEF0     8192              5658
+  1 ipout            wait   500    0 0x005FBFFC 0x005FBF30     8192              5658
+  2 netin            wait   500    0 0x005F9FFC 0x005F9ED0     8192              5659
+  4 Main process     recv    20    3 0x005E7FFC 0x005E7F34    65536              5656
+  5 shell            recv    50    4 0x005D7FFC 0x005D7C3C     8192              5657
+  6 ps               curr    20    5 0x005F7FFC 0x005F7FC4     8192                 9
+
