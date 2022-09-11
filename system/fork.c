@@ -153,7 +153,7 @@ pid32 fork() {
         //sync_printf("--it = %x, c_sp = %x\n", it, c_sp);
     }
     //slow zone
-    c_sp++;
+    //c_sp++;
     //return to speed
     sync_printf("3. it = %x, c_sp = %x\n", it, c_sp);                           // HERE - c_sp should be at sp point for child
     child_prptr->prstkptr = c_sp;                                               // setting sp
@@ -173,37 +173,39 @@ pid32 fork() {
     }
     //Work in Progress
     temp = sp;
-    sync_printf("temp=%x, *sp=%x, *sp-temp=%x\n", temp, *sp, (*sp-temp));
+    //sync_printf("temp=%x, *sp=%x, *sp-temp=%x\n", temp, *sp, (*sp-temp));
     *c_sp = c_sp + (*fp-temp);
-    sync_printf("c_sp=%x, *c_sp=%x\n", c_sp, *c_sp);
+    //sync_printf("c_sp=%x, *c_sp=%x\n", c_sp, *c_sp);
     sp++;
     c_sp++;
     // Return to speed.
-    sync_printf("Init Over.\n");
+    //sync_printf("Init Over.\n");
     while(sp < parent_prptr->prstkbase) {
-        sync_printf("-sp=%x, fp=%x, c_sp=%x\n", sp, fp, c_sp);
+        //sync_printf("-sp=%x, fp=%x, c_sp=%x\n", sp, fp, c_sp);
         while (sp < fp) {
             *c_sp = *sp;
-            sync_printf("--sp=%x, fp=%x, c_sp=(%x) %x\n", sp, fp, c_sp, *c_sp);
+            //sync_printf("--sp=%x, fp=%x, c_sp=(%x) %x\n", sp, fp, c_sp, *c_sp);
             sp++;
             c_sp++;
             if(*sp == STACKMAGIC) break;
         }
-        sync_printf("hit fp\n");
+        //sync_printf("hit fp\n");
         temp = fp;
-        sync_printf("temp=%x, *fp=%x, *fp-temp=%x\n", temp, *fp, (*fp-temp));
+        //sync_printf("temp=%x, *fp=%x, *fp-temp=%x\n", temp, *fp, (*fp-temp));
+        if(*fp == STACKMAGIC) {
+            break;
+        }
         *c_sp = c_sp + (*fp-temp);
-        sync_printf("c_sp=%x, *c_sp=%x\n", c_sp, *c_sp);
+        //sync_printf("c_sp=%x, *c_sp=%x\n", c_sp, *c_sp);
         fp = *fp;
-        c_sp++;
         sp++;
+        c_sp++;
     }
-    //c_sp--;
-    //*c_sp = STACKMAGIC;
+    *c_sp = STACKMAGIC;
     sync_printf("child base: %x, Value: %x\n", child_prptr->prstkbase, *(child_prptr->prstkbase));
     //*(child_prptr->prstkbase) = c_sp;                                   //corrupt????
     stacktrace(pid);
 
-
+    resume(pid);
     return pid;
 }
