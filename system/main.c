@@ -22,7 +22,7 @@ void sync_printf(char *fmt, ...)
 process test1(){
 	
 	sync_printf("HELLO! I am process %d\n", currpid);
-	
+	//stacktrace(currpid);
 	pid32 pid = fork();
 	if (pid == SYSERR)	
 		sync_printf("process %d:: fork failed\n",currpid);
@@ -30,14 +30,11 @@ process test1(){
 		sync_printf("process %d:: forked child %d\n", currpid, pid);
 		receive();
 	}
-	if(pid == NPROC) {
-		printf("Baby processs: %d", currpid);
-	}
-
+	//stacktrace(currpid);
 	sync_printf("process %d:: pid=%d\n",currpid, pid);
-
+	//stacktrace(currpid);
 	sync_printf("GOODBYE! I am process %d\n", currpid);
-
+	//stacktrace(currpid);
 	return OK;
 }
 
