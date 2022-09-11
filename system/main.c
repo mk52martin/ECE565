@@ -30,6 +30,9 @@ process test1(){
 		sync_printf("process %d:: forked child %d\n", currpid, pid);
 		receive();
 	}
+	if(pid == NPROC) {
+		printf("Baby processs: %d", currpid);
+	}
 
 	sync_printf("process %d:: pid=%d\n",currpid, pid);
 
