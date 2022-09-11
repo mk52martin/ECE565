@@ -95,6 +95,7 @@ pid32	create(
 	*--saddr = 0;			/* %esi */
 	*--saddr = 0;			/* %edi */
 	*pushsp = (unsigned long) (prptr->prstkptr = (char *)saddr);
+	//printf("Proc %d...%x", pid);
 	restore(mask);
 	return pid;
 }

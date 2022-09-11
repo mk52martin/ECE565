@@ -1,7 +1,7 @@
 /* fork.c - fork */
 
 #include <xinu.h>
-
+#define DEBUG_SIGNALS 1
 /*------------------------------------------------------------------------
  *  create  -  Create a process to start running a function on x86
  *------------------------------------------------------------------------
@@ -14,7 +14,9 @@ pid32 fork()
     //uint32 *parent_sadder;
     struct procent *parent_prptr;
     struct procent *prptr;
-
+#ifdef DEBUG_SIGNALS
+    printf("hit1");
+#endif
     parent_prptr = &proctab[currpid];
     //printf("parent pid %d\n", currpid);
     //printf("INITRET = %x\n", INITRET);
@@ -29,6 +31,11 @@ pid32 fork()
     }
     */
    //*((parent_prptr->prstkbase)-4),    // FUNCADDR
+   //void *ebp = *((parent_prptr->prstkbase)--);
+   //printf("%x", INITRET);
+#ifdef DEBUG_SIGNALS
+    printf("hit2");
+#endif
     pid = create(
         INITRET,
         parent_prptr->prstklen,         // Stack Size
@@ -36,7 +43,10 @@ pid32 fork()
         parent_prptr->prname,           // Stack Name
         1                           //TODO: Fix to arg number.
     );
-    
+#ifdef DEBUG_SIGNALS
+    printf("hit3");
+#endif
+
     //printf("child pid %d\n", pid);
     //stacktrace(parent_pid);
     prptr = &proctab[pid];
@@ -54,7 +64,15 @@ pid32 fork()
     printf("child base:  %d\n", *(saddr));
     */
     //printf("about to resume...");
-    resume(pid);	
+#ifdef DEBUG_SIGNALS
+    printf("hit4");
+#endif
+
+    printf("%x", INITRET);
+    resume(pid);
+#ifdef DEBUG_SIGNALS
+    printf("hit5");
+#endif	
     //printf("resumed!");
 	return pid;
 }
