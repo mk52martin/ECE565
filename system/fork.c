@@ -332,8 +332,8 @@ pid32 fork() {
     sync_printf("stack_ptr: %x\n",child_prptr->prstkptr);
     //child_prptr->prstkptr = (child_prptr->prstkptr);// + (4 * 12);                 // generates 12 local vars of GARBAGE
     sync_printf("stack_ptr: %x\n",child_prptr->prstkptr);
-    unsigned long *address, *ptr;
-    address = (child_prptr->prstkptr);
+    //unsigned long *address, *ptr;
+    //address = (child_prptr->prstkptr);
     //sync_printf("address: %x, shift: %x, val(shift): %d\n", address, address+7, *(child_prptr->prstkptr+7));
     //*(address+7) = NPROC;
     //sync_printf("updated to: %d, supposed to be: %d\n", *(child_prptr->prstkptr+7), NPROC);
