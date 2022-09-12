@@ -22,7 +22,7 @@ void sync_printf(char *fmt, ...)
 process test1(){
 	
 	sync_printf("HELLO! I am process %d\n", currpid);
-	//stacktrace(currpid);
+	stacktrace(currpid);
 	pid32 pid = fork();
 	if (pid == SYSERR)	
 		sync_printf("process %d:: fork failed\n",currpid);
