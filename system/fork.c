@@ -220,12 +220,6 @@ pid32 fork_3() {
 pid32 fork() {
     sync_printf("\n\nIn Fork\n\n");
     stacktrace(currpid);
-    unsigned long **c_sp, **sp, **fp;
-	//asm("movl %%esp, %0\n" :"=r"(sp));
-    asm("movl %%ebp, %0\n" :"=r"(fp));
-    sp = fp - 2;
-    // --->sync_printf("1. sp: %x, fp: %x, sp*: %x, fp*: %x\n", sp, fp, *sp, *fp);
-    void* it = fp;                                                              // iterator (moves w/ +-4)
     
     //
     // create process (init stack)
@@ -243,11 +237,19 @@ pid32 fork() {
     sync_printf("Pid: %d\n", pid);
     struct procent *child_prptr = &proctab[pid];
     //
-    //gather info to create stack [bottom-up]
+    //gathering info to create stack [bottom-up]
     //
-    
+    unsigned long **c_sp, **sp, **fp;
+	asm("movl %%esp, %0\n" :"=r"(sp));
+    asm("movl %%ebp, %0\n" :"=r"(fp));
+    while(*sp != fp) {
+        sp++;
+    } 
+    sp -= 2;
+    sync_printf("1. sp: %x, fp: %x, sp*: %x, fp*: %x\n", sp, fp, *sp, *fp);
+    void* it = sp;                                                              // iterator (moves w/ +-4)
     c_sp = child_prptr->prstkbase;
-    // --->sync_printf("2. it = %x, c_sp = %x\n", it, c_sp);
+    sync_printf("2. it = %x, c_sp = %x\n", it, c_sp);
     while(it != parent_prptr->prstkbase) {                                      //equalize w/ parent stkptr
         c_sp--;
         it = it + 4;
@@ -256,10 +258,10 @@ pid32 fork() {
     //slow zone
     //c_sp++;
     //return to speed
-    // --->sync_printf("3. it = %x, c_sp = %x\n", it, c_sp);                           
-    *(--c_sp) = 0;
-    *(--c_sp) = 0;
-    child_prptr->prstkptr = c_sp;       // setting sp
+    sync_printf("3. it = %x, c_sp = %x\n", it, c_sp);                           
+    //*(--c_sp) = 0;
+    //*(--c_sp) = 0;
+    child_prptr->prstkptr = c_sp;       // setting sp, adjust later
     uint32 *max, *min;
     min = sp;
     max = parent_prptr->prstkbase;
@@ -269,20 +271,20 @@ pid32 fork() {
     } else {
         offset = (uint32*)child_prptr->prstkbase - max;
     }
-    // --->sync_printf("4. CHILD: base = %x, c_sp = %x\n", child_prptr->prstkbase, c_sp);
-    // --->sync_printf("Min = %x, Max = %x\n", min, max);
+    sync_printf("4. CHILD: base = %x, c_sp = %x\n", child_prptr->prstkbase, c_sp);
+    sync_printf("Min = %x, Max = %x\n", min, max);
     //
     // time to iterate
     //
     unsigned long *temp;
-    fp = sp + 2;
-    // --->sync_printf("5. sp=%x, fp=%x, parent_base=%x\nIterate Begin\n", sp, fp, parent_prptr->prstkbase);
+    //fp = sp + 2;
+    sync_printf("5. sp=%x, fp=%x, parent_base=%x\nIterate Begin\n", sp, fp, parent_prptr->prstkbase);
     //stacktrace(currpid);
     while(sp != fp){
-        if(*sp > min && *sp < max) {
-            *c_sp = (*sp) + 4*offset;
+        if(*sp >= min && *sp <= max) {
+            *c_sp = (*sp) - offset;
         } else { *c_sp = *sp; }
-        // --->fsync_printf("-sp=%x, fp=%x, c_sp=(%x) %x\n", sp, fp, c_sp, *c_sp);
+        sync_printf("sp=%x, fp=%x, c_sp=(%x) %x\n", sp, fp, c_sp, *c_sp);
         sp++;
         c_sp++;
     }
@@ -291,13 +293,13 @@ pid32 fork() {
     //sync_printf("temp=%x, *sp=%x, *sp-temp=%x\n", temp, *sp, (*sp-temp));
     //*c_sp = c_sp + (*fp-temp);
     //sync_printf("c_sp=%x, *c_sp=%x\n", c_sp, *c_sp);
-    temp = sp;
-    // --->sync_printf("sp=%x, *fp=%x, *sp-temp=%x\n", sp, *fp, (*sp-temp));
-    *c_sp = c_sp + (*sp-temp);
+    temp = fp;
+    sync_printf("fp=%x, *fp=%x, *sp-temp=%x\n", fp, *fp, (*fp-temp));
+    *c_sp = c_sp + (*fp-temp);
     fp = *fp;
     sp++;
     c_sp++;
-    // Return to speed.
+    // Return to speed.5.
     //sync_printf("Init Over.\n");
     while(sp < parent_prptr->prstkbase) {
         //sync_printf("-sp=%x, fp=%x, c_sp=%x\n", sp, fp, c_sp);
@@ -311,10 +313,14 @@ pid32 fork() {
             if(*sp == STACKMAGIC) break;
         }
         //sync_printf("hit fp\n");
-        temp = sp;
-        // --->sync_printf("sp=%x, *fp=%x, *sp-temp=%x\n", sp, *fp, (*sp-temp));
-        *c_sp = c_sp + (*sp-temp);
-        // --->sync_printf("c_sp=%x, *c_sp=%x\n", c_sp, *c_sp);
+        temp = fp;
+        sync_printf("fp=%x, *fp=%x, *fp-temp=%x\n", fp, *fp, (*fp-temp));
+        if(*fp == STACKMAGIC) {
+            *c_sp = child_prptr->prstkbase;
+        } else {
+            *c_sp = c_sp + (*fp-temp);
+        }
+        sync_printf("c_sp=%x, *c_sp=%x\n", c_sp, *c_sp);
         fp = *fp;
         sp++;
         c_sp++;
@@ -323,11 +329,42 @@ pid32 fork() {
     //sync_printf("child base: %x, Value: %x\n", child_prptr->prstkbase, *(child_prptr->prstkbase));
     //*(child_prptr->prstkbase) = c_sp;                                   //corrupt????
     //stacktrace(pid);
-    unsigned long *address = (child_prptr->prstkptr);
+    sync_printf("stack_ptr: %x\n",child_prptr->prstkptr);
+    //child_prptr->prstkptr = (child_prptr->prstkptr);// + (4 * 12);                 // generates 12 local vars of GARBAGE
+    sync_printf("stack_ptr: %x\n",child_prptr->prstkptr);
+    unsigned long *address, *ptr;
+    address = (child_prptr->prstkptr);
     //sync_printf("address: %x, shift: %x, val(shift): %d\n", address, address+7, *(child_prptr->prstkptr+7));
-    *(address+4) = NPROC;
+    //*(address+7) = NPROC;
     //sync_printf("updated to: %d, supposed to be: %d\n", *(child_prptr->prstkptr+7), NPROC);
+    sync_printf("\n\nCOMP STACK\n\n\n");
+    stacktrace(currpid);
     sync_printf("\n\nFORK STACK\n\n\n");
+    stacktrace(pid);
+    // adding register values back in....
+    /*child_prptr->prstkptr = address+4;
+    ptr = address + 2;
+    *--address = 0x00000200;
+    //sync_printf("(%x) %x\n", address, *address);
+    *--address = NPROC;         // eax
+    //sync_printf("(%x) %x\n", address, *address);
+    *--address = 0;
+    //sync_printf("(%x) %x\n", address, *address);
+    *--address = 0;
+    //sync_printf("(%x) %x\n", address, *address);
+    *--address = 0;
+    //sync_printf("(%x) %x\n", address, *address);
+    *--address = 0;
+    //sync_printf("(%x) %x\n", address, *address);
+    *--address = ptr;
+    //sync_printf("(%x) %x\n", address, *address);
+    ptr = address - 1;
+    *--address = 0;
+    //sync_printf("(%x) %x\n", address, *address);
+    *--address = 0;
+    //sync_printf("(%x) %x\n", address, *address);
+    *ptr = (unsigned long) (address);
+    sync_printf("[BACK](%x) %x", ptr, *ptr);*/
     stacktrace(pid);
     resume(pid);
     return pid;
