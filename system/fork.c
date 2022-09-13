@@ -373,7 +373,7 @@ pid32 fork_4() {
 pid32 fork() {
     intmask 	mask;    	/* Interrupt mask		*/
     
-    stacktrace(currpid);
+    //stacktrace(currpid);
 
     unsigned long	*sp, *fp, *c_sp, *c_fp, *it;
     asm("movl %%esp, %0\n" :"=r"(sp));      // get sp
@@ -451,8 +451,9 @@ pid32 fork() {
 	*--c_sp = 0;			/* %edi */
 	*pushsp = (unsigned long) (child_prptr->prstkptr = (char *)c_sp);
     //sync_printf("child_prptr->prstkptr = %x\n", child_prptr->prstkptr);
-    sync_printf("UPDATED CHILD STACK\n");
-    stacktrace(pid);
+    //sync_printf("\nprocess: %d UPDATED CHILD STACK\n", pid);
+    //sync_printf("UPDATED CHILD STACK\n");
+    //stacktrace(pid);
     restore(mask);
     resume(pid);
     return pid;

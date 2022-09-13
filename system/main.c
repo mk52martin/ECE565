@@ -3,9 +3,9 @@
 #include <xinu.h>
 #include <stdarg.h>
 
-#define TESTCASE1
+//#define TESTCASE1
 //#define TESTCASE2
-//#define TESTCASE3
+#define TESTCASE3
 
 uint32 sum(uint32 a, uint32 b){
 	return (a+b);
@@ -67,6 +67,8 @@ process test3(int a, int b, int *c, int *d){
 	*c = a+b+currpid;	
 
 	for (i=0;i<3;i++){
+		//sync_printf("\nprocess: %d STACK\n", currpid);
+		//stacktrace(currpid);
 		pid = fork();
 		if (pid == SYSERR)	
 			sync_printf("process %d:: fork failed\n",currpid);
