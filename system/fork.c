@@ -371,10 +371,16 @@ pid32 fork_4() {
 }
 
 pid32 fork() {
+    intmask 	mask;    	/* Interrupt mask		*/
+    
+    stacktrace(currpid);
+
     unsigned long	*sp, *fp, *c_sp, *c_fp, *it;
     asm("movl %%esp, %0\n" :"=r"(sp));      // get sp
 	asm("movl %%ebp, %0\n" :"=r"(fp));      // get fp
-    
+    //sync_printf("sp= %x, fp = %x\n", sp, fp);
+    sp = fp;
+    fp = *fp;
     /*
     it = sp;
 
@@ -383,9 +389,9 @@ pid32 fork() {
     }
     fp = it;*/
 
-    sync_printf("sp= %x, fp = %x\n", sp, fp);
-    sync_printf("PARENT_STACK\n");
-    stacktrace(currpid);
+    //sync_printf("sp= %x, fp = %x\n", sp, fp);
+    //sync_printf("PARENT_STACK\n");
+    //stacktrace(currpid);
     struct procent *parent_prptr = &proctab[currpid];   // to get parent info
     // create child
     pid32 pid;
@@ -397,7 +403,7 @@ pid32 fork() {
         parent_prptr->prname,               // Stack Name
         1                                   // num args
     );
-    
+    mask = disable();
     struct procent *child_prptr = &proctab[pid];
     c_sp = (unsigned long *)child_prptr->prstkbase;
     c_sp--;
@@ -408,17 +414,19 @@ pid32 fork() {
     uint32 *max, *min;
     min = sp;
     max = parent_prptr->prstkbase;
-    sync_printf("max: %x, min %x\n", max, min);
+    //sync_printf("max: %x, min %x\n", max, min);
     uint32 offset;
     if((uint32)max > (uint32)child_prptr->prstkbase) {
         offset = (uint32)max - (uint32)child_prptr->prstkbase;
     } else {
         offset = (uint32)child_prptr->prstkbase - (uint32)max;
     }
-    c_fp = fp - offset/4;
-    sync_printf("c_fp = %x, fp = %x\n", c_fp, fp);
+    
+    c_fp = sp - offset/4;
+    //sp += 1;
+    //sync_printf("c_fp = %x, fp = %x, sp = %x\n", c_fp, fp, sp);
 
-    sync_printf("it= %x, c_sp = %x\n", it, c_sp);
+    //sync_printf("it= %x, c_sp = %x\n", it, c_sp);
     while(it >= sp) {
         if(*it >= min && *it <= max) {
             *c_sp = (*it) - offset;
@@ -428,7 +436,7 @@ pid32 fork() {
     }
     //sync_printf("NEW CHILD STACK\n");
     //stacktrace(pid);
-
+    c_sp++;
     // push regs onto stack
     uint32 *pushsp;
     *--c_sp = 0x00000200;
@@ -442,8 +450,10 @@ pid32 fork() {
 	*--c_sp = 0;			/* %esi */
 	*--c_sp = 0;			/* %edi */
 	*pushsp = (unsigned long) (child_prptr->prstkptr = (char *)c_sp);
-    sync_printf("child_prptr->prstkptr = %x\n", child_prptr->prstkptr);
+    //sync_printf("child_prptr->prstkptr = %x\n", child_prptr->prstkptr);
     sync_printf("UPDATED CHILD STACK\n");
     stacktrace(pid);
+    restore(mask);
+    resume(pid);
     return pid;
 }

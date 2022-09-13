@@ -55,7 +55,7 @@ process test2(){
 	}
 
 	sync_printf("GOODBYE! I am process %d\n", currpid);
-	
+	//stacktrace(currpid);
 	return OK;
 }
 
