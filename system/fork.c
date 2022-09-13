@@ -217,7 +217,7 @@ pid32 fork_3() {
     return pid;
 }
 
-pid32 fork() {
+pid32 fork_4() {
     sync_printf("\n\nIn Fork\n\n");
     stacktrace(currpid);
     
@@ -330,19 +330,19 @@ pid32 fork() {
     //*(child_prptr->prstkbase) = c_sp;                                   //corrupt????
     //stacktrace(pid);
     sync_printf("stack_ptr: %x\n",child_prptr->prstkptr);
-    //child_prptr->prstkptr = (child_prptr->prstkptr);// + (4 * 12);                 // generates 12 local vars of GARBAGE
+    child_prptr->prstkptr = (child_prptr->prstkptr);// + (4 * 12);                 // generates 12 local vars of GARBAGE
     sync_printf("stack_ptr: %x\n",child_prptr->prstkptr);
-    //unsigned long *address, *ptr;
-    //address = (child_prptr->prstkptr);
+    unsigned long *address, *ptr;
+    address = (child_prptr->prstkptr);
     //sync_printf("address: %x, shift: %x, val(shift): %d\n", address, address+7, *(child_prptr->prstkptr+7));
-    //*(address+7) = NPROC;
+    *(address+7) = NPROC;
     //sync_printf("updated to: %d, supposed to be: %d\n", *(child_prptr->prstkptr+7), NPROC);
     sync_printf("\n\nCOMP STACK\n\n\n");
     stacktrace(currpid);
     sync_printf("\n\nFORK STACK\n\n\n");
     stacktrace(pid);
     // adding register values back in....
-    /*child_prptr->prstkptr = address+4;
+    child_prptr->prstkptr = address+4;
     ptr = address + 2;
     *--address = 0x00000200;
     //sync_printf("(%x) %x\n", address, *address);
@@ -364,8 +364,86 @@ pid32 fork() {
     *--address = 0;
     //sync_printf("(%x) %x\n", address, *address);
     *ptr = (unsigned long) (address);
-    sync_printf("[BACK](%x) %x", ptr, *ptr);*/
+    sync_printf("[BACK](%x) %x", ptr, *ptr);
     stacktrace(pid);
     resume(pid);
+    return pid;
+}
+
+pid32 fork() {
+    unsigned long	*sp, *fp, *c_sp, *c_fp, *it;
+    asm("movl %%esp, %0\n" :"=r"(sp));      // get sp
+	asm("movl %%ebp, %0\n" :"=r"(fp));      // get fp
+    
+    /*
+    it = sp;
+
+    while(*it != fp) {      // move fp back
+        it--;
+    }
+    fp = it;*/
+
+    sync_printf("sp= %x, fp = %x\n", sp, fp);
+    sync_printf("PARENT_STACK\n");
+    stacktrace(currpid);
+    struct procent *parent_prptr = &proctab[currpid];   // to get parent info
+    // create child
+    pid32 pid;
+    // only used to grab stack & proctab space
+    pid = create(                           // create process (init stack)
+        INITRET,
+        parent_prptr->prstklen,             // Stack Size
+        parent_prptr->prprio,               // Stack Priority
+        parent_prptr->prname,               // Stack Name
+        1                                   // num args
+    );
+    
+    struct procent *child_prptr = &proctab[pid];
+    c_sp = (unsigned long *)child_prptr->prstkbase;
+    c_sp--;
+    it = (unsigned long *)parent_prptr->prstkbase;
+    it--;
+
+    //find adjustment for all ptr's
+    uint32 *max, *min;
+    min = sp;
+    max = parent_prptr->prstkbase;
+    sync_printf("max: %x, min %x\n", max, min);
+    uint32 offset;
+    if((uint32)max > (uint32)child_prptr->prstkbase) {
+        offset = (uint32)max - (uint32)child_prptr->prstkbase;
+    } else {
+        offset = (uint32)child_prptr->prstkbase - (uint32)max;
+    }
+    c_fp = fp - offset/4;
+    sync_printf("c_fp = %x, fp = %x\n", c_fp, fp);
+
+    sync_printf("it= %x, c_sp = %x\n", it, c_sp);
+    while(it >= sp) {
+        if(*it >= min && *it <= max) {
+            *c_sp = (*it) - offset;
+        } else { *c_sp = *it; }
+        c_sp--;
+        it--;
+    }
+    //sync_printf("NEW CHILD STACK\n");
+    //stacktrace(pid);
+
+    // push regs onto stack
+    uint32 *pushsp;
+    *--c_sp = 0x00000200;
+    *--c_sp = NPROC;			/* %eax */
+	*--c_sp = 0;			/* %ecx */
+	*--c_sp = 0;			/* %edx */
+	*--c_sp = 0;			/* %ebx */
+	*--c_sp = 0;			/* %esp; value filled in below	*/
+	pushsp = c_sp;			/* Remember this location	*/
+	*--c_sp = c_fp;		/* %ebp (while finishing ctxsw)	*/
+	*--c_sp = 0;			/* %esi */
+	*--c_sp = 0;			/* %edi */
+	*pushsp = (unsigned long) (child_prptr->prstkptr = (char *)c_sp);
+    sync_printf("child_prptr->prstkptr = %x\n", child_prptr->prstkptr);
+    sync_printf("UPDATED CHILD STACK\n");
+    stacktrace(pid);
     return pid;
 }

@@ -4,8 +4,8 @@
 #include <stdarg.h>
 
 #define TESTCASE1
-#define TESTCASE2
-#define TESTCASE3
+//#define TESTCASE2
+//#define TESTCASE3
 
 uint32 sum(uint32 a, uint32 b){
 	return (a+b);
