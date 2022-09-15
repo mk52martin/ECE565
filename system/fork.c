@@ -372,7 +372,7 @@ pid32 fork_4() {
 
 pid32 fork() {
     intmask 	mask;    	/* Interrupt mask		*/
-    
+    uint32 edi, esi, ebx;
     //stacktrace(currpid);
 
     unsigned long	*sp, *fp, *c_sp, *c_fp, *it;
@@ -381,6 +381,14 @@ pid32 fork() {
     //sync_printf("sp= %x, fp = %x\n", sp, fp);
     sp = fp;
     fp = *fp;
+    it = sp;
+    it--;
+    edi = *it;
+    it--;
+    esi = *it;
+    it += 7;
+    ebx = *it;
+    //sync_printf("Internal - edi: %x esi: %x ebx: %x it: %x sp: %x\n", edi, esi, ebx, it, sp);
     /*
     it = sp;
 
@@ -416,12 +424,19 @@ pid32 fork() {
     max = parent_prptr->prstkbase;
     //sync_printf("max: %x, min %x\n", max, min);
     uint32 offset;
+    uint32 higher;
     if((uint32)max > (uint32)child_prptr->prstkbase) {
         offset = (uint32)max - (uint32)child_prptr->prstkbase;
+        higher = 1;
     } else {
         offset = (uint32)child_prptr->prstkbase - (uint32)max;
+        higher = 0;
     }
-    
+    //edi = edi - offset;
+    //esi = esi - offset;
+    //ebx = ebx - offset;
+    //sync_printf("Internal - pid: %d edi: %x esi: %x ebx: %x it: %x\n", pid, edi, esi, ebx, it);
+
     c_fp = sp - offset/4;
     //sp += 1;
     //sync_printf("c_fp = %x, fp = %x, sp = %x\n", c_fp, fp, sp);
@@ -429,7 +444,11 @@ pid32 fork() {
     //sync_printf("it= %x, c_sp = %x\n", it, c_sp);
     while(it >= sp) {
         if(*it >= min && *it <= max) {
-            *c_sp = (*it) - offset;
+            if(higher){
+                *c_sp = (*it) - offset;
+            } else {
+                *c_sp = (*it) + offset;
+            }
         } else { *c_sp = *it; }
         c_sp--;
         it--;
@@ -443,16 +462,16 @@ pid32 fork() {
     *--c_sp = NPROC;			/* %eax */
 	*--c_sp = 0;			/* %ecx */
 	*--c_sp = 0;			/* %edx */
-	*--c_sp = 0;			/* %ebx */
+	*--c_sp = ebx;			/* %ebx */ //<<- need to grab from stack
 	*--c_sp = 0;			/* %esp; value filled in below	*/
 	pushsp = c_sp;			/* Remember this location	*/
 	*--c_sp = c_fp;		/* %ebp (while finishing ctxsw)	*/
-	*--c_sp = 0;			/* %esi */
-	*--c_sp = 0;			/* %edi */
+	*--c_sp = esi;			/* %esi */ //<<- need to grab from stack
+	*--c_sp = edi;			/* %edi */ //<<- need to grab from stack
 	*pushsp = (unsigned long) (child_prptr->prstkptr = (char *)c_sp);
     //sync_printf("child_prptr->prstkptr = %x\n", child_prptr->prstkptr);
     //sync_printf("\nprocess: %d UPDATED CHILD STACK\n", pid);
-    //sync_printf("UPDATED CHILD STACK\n");
+    //sync_printf("UPDATED CHILD STACK %d\n", pid);
     //stacktrace(pid);
     restore(mask);
     resume(pid);
