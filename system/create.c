@@ -36,7 +36,25 @@ pid32	create(
 	}
 
 	prcount++;
+
+	int pid_search = (pid32)getpid();
+	/*if(pid_search == 5) {
+		pid_search = 0;
+	}*/
+	prptr = &proctab[pid_search]; 
+	bool8 user = FALSE;
+	while(pid_search > 0) {
+		if(pid_search == 4) {
+			//sync_printf("User Process %d\n", pid);
+			user = TRUE;
+			break;
+		}
+		pid_search = prptr->prparent;
+		prptr = &proctab[pid_search];
+	}
+
 	prptr = &proctab[pid];
+	prptr->pr_user = user;
 
 	/* Initialize process table entry for new process */
 	prptr->prstate = PR_SUSP;	/* Initial state is suspended	*/

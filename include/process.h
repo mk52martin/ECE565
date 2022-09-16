@@ -54,6 +54,7 @@ struct procent {		/* Entry in the process table		*/
 	int16	prdesc[NDESC];	/* Device descriptors for process	*/
 	uint32 	prstart_timesec; /* Beginning time of process (in sec) */
 	uint32 	prstart_timems; /* Beginning time of process (in ms) */
+	bool8	pr_user;
 };
 
 /* Marker for the top of a process stack (used to help detect overflow)	*/
