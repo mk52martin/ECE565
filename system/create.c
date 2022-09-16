@@ -38,9 +38,7 @@ pid32	create(
 	prcount++;
 
 	int pid_search = (pid32)getpid();
-	/*if(pid_search == 5) {
-		pid_search = 0;
-	}*/
+	
 	prptr = &proctab[pid_search]; 
 	bool8 user = FALSE;
 	while(pid_search > 0) {

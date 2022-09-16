@@ -39,7 +39,7 @@ syscall	kill(
 	}
 	
 	prptr = &proctab[pid];
-	prptr->prparent = -1;
+	
 	if (--prcount <= 1) {		/* Last user process completes	*/
 		xdone();
 	}
@@ -48,6 +48,7 @@ syscall	kill(
 		//sync_printf("return message\n");
 		send(prptr->prparent, pid);
 	}
+	prptr->prparent = -1;
 	for (i=0; i<3; i++) {
 		close(prptr->prdesc[i]);
 	}

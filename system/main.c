@@ -6,6 +6,7 @@
 #define TESTCASE1
 #define TESTCASE2
 #define TESTCASE3
+#define TESTCASE4
 
 uint32 sum(uint32 a, uint32 b){
 	return (a+b);
@@ -19,107 +20,185 @@ void sync_printf(char *fmt, ...)
 	restore(mask);
 }
 
-process test1(){
-	
-	sync_printf("HELLO! I am process %d\n", currpid);
-	
-	pid32 pid = fork();
-	if (pid == SYSERR)	
-		sync_printf("process %d:: fork failed\n",currpid);
-	else if (pid != NPROC){
-		sync_printf("process %d:: forked child %d\n", currpid, pid);
-		//receive();
-	}
-
-	sync_printf("process %d:: pid=%d\n",currpid, pid);
-
-	sync_printf("GOODBYE! I am process %d\n", currpid);
-	stacktrace(pid);
-	return OK;
-}
-
-process test2(){
-	uint32 i;
+process create_x(int num_child, int grandparent, bool8 end){
 	pid32 pid;
-	
-	sync_printf("HELLO! I am process %d\n", currpid);
-
-	for (i=0;i<3;i++){
-		pid = fork();
-		if (pid == SYSERR)	
-			sync_printf("process %d:: fork failed\n",currpid);
-		else if (pid != NPROC){
-			sync_printf("process %d:: forked child %d\n", currpid, pid);
-			receive();
-		}
-	}
-
-	sync_printf("GOODBYE! I am process %d\n", currpid);
-	
-	return OK;
-}
-
-process test3(int a, int b, int *c, int *d){
-	uint32 i;
-	pid32 pid;
-	int *v;
-
-	*c = a+b+currpid;	
-
-	for (i=0;i<3;i++){
-		pid = fork();
-		if (pid == SYSERR)	
-			sync_printf("process %d:: fork failed\n",currpid);
-		else if (pid != NPROC){
-			sync_printf("process %d:: forked child %d\n", currpid, pid);
-			receive();
-		}
-	}
-
-	v = (int *)getmem(4);
-
-	*d = *d + currpid;
-
-	*v = pid;
-
-	sync_printf("process %d:: c=0x%x, *c=%d, d=0x%x, *d=%d, *v=%d\n", currpid, 
-				c, *c, d, *d, *v);
-	
-	return OK;
-}
-
-process	main(void)
-{
-
-pid32 pid1;
-
-#ifdef TESTCASE1
-        sync_printf("\n[TESTCASE-1]\n");
-        pid1 = create((void *)test1, 8192, 50, "test1", 1);
-        resume(pid1);
+    num_child--;
+    if (num_child != 0) {
+        pid = create((void *)create_x, 8192, 50, "create_x", 2, num_child, grandparent, end);
+        resume(pid);
         receive();
-        sync_printf("[END-TESTCASE-1]\n\n");
+    } else {
+        if(end) {
+            send(grandparent, getpid());
+        }
+        receive();
+    }
+    
+	return OK;
+}
+
+process create_x_with_buddy(int num_child, int grandparent){
+	pid32 pid;
+    num_child--;
+    if (num_child != 0) {
+        pid = create((void *)create_x_with_buddy, 8192, 50, "create_x", 2, num_child, grandparent);
+        resume(pid);
+        receive();
+    } else {
+        pid = create((void *)create_x, 8192, 50, "create_x", 3, 1, grandparent, FALSE);
+        resume(pid);
+        pid = create((void *)create_x, 8192, 50, "create_x", 3, 1, grandparent, TRUE);
+        resume(pid);
+        receive();
+    }
+    
+	return OK;
+}
+
+process create_triplets(int num_child, int grandparent, bool8 end){
+	pid32 pid;
+    num_child--;
+    if (num_child != 0) {
+        pid = create((void *)create_triplets, 8192, 50, "create_x", 2, num_child, grandparent, FALSE);
+        resume(pid);
+        pid = create((void *)create_triplets, 8192, 50, "create_x", 2, num_child, grandparent, FALSE);
+        resume(pid);
+        if(num_child != 1){
+            pid = create((void *)create_triplets, 8192, 50, "create_x", 2, num_child, grandparent, FALSE);
+        } else {
+            pid = create((void *)create_triplets, 8192, 50, "create_x", 2, num_child, grandparent, TRUE);
+        }
+        resume(pid);
+    }
+    if(end) {
+        send(grandparent, FALSE);
+    }
+    receive();
+	return OK;
+}
+
+
+process test1(uint32 parent){
+	pid32 pid;
+    pid = create((void *)create_x, 8192, 50, "create_x", 2, 2, parent, FALSE);
+    resume(pid);
+    pid = create((void *)create_x, 8192, 50, "create_x", 2, 2, parent, TRUE);
+    resume(pid);
+    receive();
+	return OK;
+}
+
+process test2(uint32 parent){
+	pid32 pid;
+    pid = create((void *)create_x, 8192, 50, "create_x", 2, 2, parent, FALSE);
+    resume(pid);
+    pid = create((void *)create_x, 8192, 50, "create_x", 2, 2, parent, TRUE);
+    resume(pid);
+    receive();
+	return OK;
+}
+
+process test3(uint32 parent){
+	pid32 pid;
+    pid = create((void *)create_x_with_buddy, 8192, 50, "create_x", 2, 3, parent, TRUE);
+    resume(pid);
+    receive();
+	return OK;
+}
+
+process test4(uint32 parent){
+	pid32 pid;
+    pid = create((void *)create_triplets, 8192, 50, "create_triplets", 2, 3, parent, TRUE);
+    resume(pid);
+    receive();
+	return OK;
+}
+
+void print_children (void) {
+    int i = 4;
+    int j;
+    bool8 first;
+    struct	procent *prptr_child;
+    for(; i < NPROC; i++) {
+        j = 4;
+        first = TRUE;
+        for(; j < NPROC; j++) {
+            prptr_child = &proctab[j];
+            if(prptr_child->prparent == i) {
+                if(first) {
+                    sync_printf("\n%d:: %d", i, j);
+                    first = FALSE;
+                } else {
+                    sync_printf(", %d", j);
+                }
+            }
+        }
+    }
+    sync_printf("\n");
+    return;
+}
+
+process	main(void) {
+    sync_printf("\nBEGIN\n");
+    pid32 pid, kill_end;
+    print_children();
+
+#ifdef TESTCASE1        // passed
+    sync_printf("\n[TESTCASE-1]\n");
+    pid = create((void *)test1, 8192, 50, "test3", 1, currpid);
+    resume(pid);
+	receive();
+    sync_printf("Structure:");
+    print_children();
+    kill(pid);
+    sync_printf("After killing head (%d):", pid);
+    print_children();
+	sync_printf("[END-TESTCASE-1]\n\n");
 #endif
 
-
-#ifdef TESTCASE2
-	sync_printf("\n[TESTCASE-2]\n");
-        pid1 = create((void *)test2, 8192, 50, "test2", 1);
-        resume(pid1);
+#ifdef TESTCASE2        // passed
+    sync_printf("\n[TESTCASE-2]\n");
+    pid = create((void *)test2, 8192, 50, "test2", 1, currpid);
+    resume(pid);
 	receive();
+    //receive();
+    sync_printf("Structure:\n");
+    print_children();
+    sync_printf("After killing intermediate node (%d):", (pid + 1));
+    kill(pid + 1);
+    print_children();
+    kill(pid);
+    sync_printf("After killing head (%d):", pid);
+    print_children();
 	sync_printf("[END-TESTCASE-2]\n\n");
 #endif
-	
-#ifdef TESTCASE3
 
-	int c=0;
-	int d=0;
-
+#ifdef TESTCASE3        // passed
 	sync_printf("\n[TESTCASE-3]\n");
-        pid1 = create((void *)test3, 8192, 50, "test3", 4, 1, 10, &c, &d);
-        resume(pid1);
-	receive();
+    pid = create((void *)test3, 8192, 50, "test3", 1, currpid);
+    resume(pid);
+	kill_end = receive();
+    sync_printf("Structure:");
+    print_children();
+    kill(kill_end);
+    sync_printf("After killing end node (%d):", kill_end);
+    print_children();
+    kill(pid);
+    sync_printf("After killing head (%d):", pid);
+    print_children();
 	sync_printf("[END-TESTCASE-3]\n\n");
+#endif
+#ifdef TESTCASE4        // passed
+	sync_printf("\n[TESTCASE-4]\n");
+    pid = create((void *)test4, 8192, 50, "test3", 1, currpid);
+    resume(pid);
+	receive();
+    sync_printf("Structure:");
+    print_children();
+    kill(pid);
+    sync_printf("After killing head (%d):", pid);
+    print_children();
+	sync_printf("[END-TESTCASE-4]\n\n");
 #endif
 	
 	return OK;

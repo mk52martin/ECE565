@@ -474,11 +474,11 @@ pid32 fork() {
 	*pushsp = (unsigned long) (child_prptr->prstkptr = (char *)c_sp);
     //sync_printf("child_prptr->prstkptr = %x\n", child_prptr->prstkptr);
     //sync_printf("\nprocess: %d UPDATED CHILD STACK\n", pid);
-    sync_printf("UPDATED CHILD STACK %d\n", pid);
-    stacktrace(pid);
-    sync_printf("PARENT STACK\n");
-    stacktrace(currpid);
-
+    // sync_printf("PARENT STACK\n");
+    // stacktrace(currpid);
+    // sync_printf("UPDATED CHILD STACK %d\n", pid);
+    // stacktrace(pid);
+    child_prptr->pr_user = TRUE;
     restore(mask);
     resume(pid);
     return pid;
