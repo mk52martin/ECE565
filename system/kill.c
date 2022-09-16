@@ -31,11 +31,13 @@ syscall	kill(
 			pot_child = &proctab[j];
 			if(pot_child->prparent == pid) {
 				//sync_printf("Process %d Kill: %d\n", currpid, j);
+				pot_child->prparent = -1;
 				kill(j);
-				
+				//prptr->prparent = -1;
 				cascading = TRUE;
 			}
 		}
+		//prptr->prparent = -1;
 	}
 	
 	prptr = &proctab[pid];
