@@ -22,40 +22,29 @@ void sync_printf(char *fmt, ...)
 process test1(){
 	
 	sync_printf("HELLO! I am process %d\n", currpid);
-	/*uint32 edi, esi, ebx;
-	stacktrace(currpid);
-    asm("movl %%edi, %0\n" :"=r"(edi));      // get edi
-	asm("movl %%esi, %0\n" :"=r"(esi));      // get esi
-    asm("movl %%ebx, %0\n" :"=r"(ebx));      // get ebx
-	sync_printf("edi: %x esi: %x ebx: %x\n");*/
+	
 	pid32 pid = fork();
 	if (pid == SYSERR)	
 		sync_printf("process %d:: fork failed\n",currpid);
 	else if (pid != NPROC){
 		sync_printf("process %d:: forked child %d\n", currpid, pid);
-		receive();
+		//receive();
 	}
-	//stacktrace(currpid);
+
 	sync_printf("process %d:: pid=%d\n",currpid, pid);
-	//stacktrace(currpid);
+
 	sync_printf("GOODBYE! I am process %d\n", currpid);
-	//stacktrace(currpid);
+	stacktrace(pid);
 	return OK;
 }
 
 process test2(){
 	uint32 i;
 	pid32 pid;
-
-	uint32 edi, esi, ebx;	// debug
 	
-	//sync_printf("HELLO! I am process %d\n", currpid);
+	sync_printf("HELLO! I am process %d\n", currpid);
+
 	for (i=0;i<3;i++){
-		
-		/*asm("movl %%edi, %0\n" :"=r"(edi));      // get edi
-		asm("movl %%esi, %0\n" :"=r"(esi));      // get esi
-		asm("movl %%ebx, %0\n" :"=r"(ebx));      // get ebx
-		sync_printf("currpid: %d edi: %x esi: %x ebx: %x\n", currpid, edi, esi, ebx);*/	//debug
 		pid = fork();
 		if (pid == SYSERR)	
 			sync_printf("process %d:: fork failed\n",currpid);
@@ -66,7 +55,7 @@ process test2(){
 	}
 
 	sync_printf("GOODBYE! I am process %d\n", currpid);
-	//stacktrace(currpid);
+	
 	return OK;
 }
 
@@ -78,8 +67,6 @@ process test3(int a, int b, int *c, int *d){
 	*c = a+b+currpid;	
 
 	for (i=0;i<3;i++){
-		//sync_printf("\nprocess: %d STACK\n", currpid);
-		//stacktrace(currpid);
 		pid = fork();
 		if (pid == SYSERR)	
 			sync_printf("process %d:: fork failed\n",currpid);

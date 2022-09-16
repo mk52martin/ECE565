@@ -45,6 +45,7 @@ syscall	kill(
 	}
 
 	if(!cascading){
+		//sync_printf("return message\n");
 		send(prptr->prparent, pid);
 	}
 	for (i=0; i<3; i++) {

@@ -379,15 +379,18 @@ pid32 fork() {
     asm("movl %%esp, %0\n" :"=r"(sp));      // get sp
 	asm("movl %%ebp, %0\n" :"=r"(fp));      // get fp
     //sync_printf("sp= %x, fp = %x\n", sp, fp);
+    asm("movl %%edi, %0\n" :"=r"(edi));      // get sp
+	asm("movl %%esi, %0\n" :"=r"(esi));      // get fp
+    asm("movl %%ebx, %0\n" :"=r"(ebx));      // get sp
     sp = fp;
     fp = *fp;
-    it = sp;
-    it--;
-    edi = *it;
-    it--;
-    esi = *it;
-    it += 7;
-    ebx = *it;
+    // it = sp;
+    // it--;
+    // edi = *it;
+    // it--;
+    // esi = *it;
+    // it += 7;
+    // ebx = *it;
     //sync_printf("Internal - edi: %x esi: %x ebx: %x it: %x sp: %x\n", edi, esi, ebx, it, sp);
     /*
     it = sp;
@@ -471,8 +474,11 @@ pid32 fork() {
 	*pushsp = (unsigned long) (child_prptr->prstkptr = (char *)c_sp);
     //sync_printf("child_prptr->prstkptr = %x\n", child_prptr->prstkptr);
     //sync_printf("\nprocess: %d UPDATED CHILD STACK\n", pid);
-    //sync_printf("UPDATED CHILD STACK %d\n", pid);
-    //stacktrace(pid);
+    sync_printf("UPDATED CHILD STACK %d\n", pid);
+    stacktrace(pid);
+    sync_printf("PARENT STACK\n");
+    stacktrace(currpid);
+
     restore(mask);
     resume(pid);
     return pid;
