@@ -28,13 +28,13 @@ process test1(){
 		sync_printf("process %d:: fork failed\n",currpid);
 	else if (pid != NPROC){
 		sync_printf("process %d:: forked child %d\n", currpid, pid);
-		//receive();
+		receive();
 	}
 
 	sync_printf("process %d:: pid=%d\n",currpid, pid);
 
 	sync_printf("GOODBYE! I am process %d\n", currpid);
-	stacktrace(pid);
+
 	return OK;
 }
 
