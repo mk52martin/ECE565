@@ -460,6 +460,7 @@ extern	umsg32	recvtime(int32);
 /* in file resched.c */
 extern	void	resched(void);
 extern	status	resched_cntl(int32);
+extern 	syscall	print_ready_list(void); 
 
 /* in file intutils.S */
 extern	void	restore(intmask);

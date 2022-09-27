@@ -1,30 +1,21 @@
 /*  main.c  - main */
 
 #include <xinu.h>
+#define TEST_SYSCALL_PRINT_READY_LIST 1
+
+process spin(void) {
+	while(1);
+}
 
 process	main(void)
 {
-	pid32	shpid;		/* Shell process ID */
-
-	printf("\n\n");
-
-	/* Create a local file system on the RAM disk */
-
-	lfscreate(RAM0, 40, 20480);
-
-	/* Run the Xinu shell */
-
-	recvclr();
-	resume(shpid = create(shell, 8192, 50, "shell", 1, CONSOLE));
-
-	/* Wait for shell to exit and recreate it */
-
-	while (TRUE) {
-	    if (receive() == shpid) {
-		sleepms(200);
-		kprintf("\n\nMain process recreating shell\n\n");
-		resume(shpid = create(shell, 4096, 20, "shell", 1, CONSOLE));
-	    }
-	}
+#if TEST_SYSCALL_PRINT_READY_LIST
+	uint32 pid = create((void *)spin, 8192, 10, "spin", 0);
+	resume(pid);
+	uint32 pid2 = create((void *)spin, 8192, 10, "spin", 0);
+	resume(pid2);
+	printf("New Processes: %d, %d\n", pid, pid2);
+	print_ready_list();
+#endif
 	return OK;
 }

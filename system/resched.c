@@ -78,3 +78,34 @@ status	resched_cntl(		/* Assumes interrupts are disabled	*/
 		return SYSERR;
 	}
 }
+
+
+/*------------------------------------------------------------------------
+ *  print_ready_list  -  Print list of ready functions (readylist)
+ *------------------------------------------------------------------------
+ */
+
+syscall print_ready_list() {
+	// disable interrupts
+	intmask mask;
+	mask = disable();
+	
+
+	//print readylist
+	qid16 tail = queuetail(readylist);												//find head
+	qid16 it = firstid(readylist);									
+
+	printf("List of ready processes from readylist:\n%d", it);						// print first item
+	it = queuetab[it].qnext;
+	while(queuetab[it].qnext != tail) {												// cycle through readylist
+		printf(", %d", it);	
+		it = queuetab[it].qnext;
+	}
+	if(it != firstid(readylist)) {													// print tail if >1 process
+		printf(", %d", it);
+	}
+
+	//reenable interrupts
+	restore(mask);
+	return OK;
+}
