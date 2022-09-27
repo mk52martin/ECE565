@@ -41,8 +41,9 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	ptnew = &proctab[currpid];
 	ptnew->prstate = PR_CURR;
 	preempt = QUANTUM;		/* Reset time slice for process	*/
+	ptnew->num_ctxsw++;		
 	ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
-
+	
 	/* Old process returns here when resumed */
 
 	return;
@@ -104,6 +105,7 @@ syscall print_ready_list() {
 	if(it != firstid(readylist)) {													// print tail if >1 process
 		printf(", %d", it);
 	}
+	printf("\n");
 
 	//reenable interrupts
 	restore(mask);

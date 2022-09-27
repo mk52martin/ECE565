@@ -1,6 +1,9 @@
 /* kill.c - kill */
 
 #include <xinu.h>
+#define DISPLAY_TURNAROUND_TIME 1
+#define DISPLAY_ARRIVAL_CURR_TIME 1
+#define DISPLAY_CTXSW_TO_PROCESS 1
 
 /*------------------------------------------------------------------------
  *  kill  -  Kill a process and remove it from the system
@@ -53,6 +56,19 @@ syscall	kill(
 	default:
 		prptr->prstate = PR_FREE;
 	}
+
+#if DISPLAY_ARRIVAL_CURR_TIME
+	printf("Process %d arrival time: %d\n", pid, prptr->turnaroundtime);
+	printf("Current Time: %d\n", ((clktime*1000) + ctr1000));
+#endif
+	// update turnaround time
+	prptr->turnaroundtime = (clktime*1000) + ctr1000 - prptr->turnaroundtime;
+#if DISPLAY_TURNAROUND_TIME
+	printf("Process %d turnaround time: %d\n", pid, prptr->turnaroundtime);
+#endif
+#if DISPLAY_CTXSW_TO_PROCESS
+	printf("Process %d was switched to %d times.\n", pid, prptr->num_ctxsw);
+#endif
 
 	restore(mask);
 	return OK;

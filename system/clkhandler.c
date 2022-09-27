@@ -11,17 +11,20 @@ void	clkhandler()
 	static	uint32	count1000 = 1000;	/* Count to 1000 ms	*/
 
 	/* Decrement the ms counter, and see if a second has passed */
-
 	if((--count1000) <= 0) {
 
 		/* One second has passed, so increment seconds count */
 
+		
 		clktime++;
 
 		/* Reset the local ms counter for the next second */
 
 		count1000 = 1000;
 	}
+	ctr1000 = 1000 - count1000;
+	struct	procent	*prptr = &proctab[currpid];
+	prptr->runtime++;
 
 	/* Handle sleeping processes if any exist */
 
