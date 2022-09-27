@@ -111,6 +111,7 @@ process test4(uint32 parent){
     pid = create((void *)create_triplets, 8192, 50, "create_triplets", 2, 3, parent, TRUE);
     resume(pid);
     receive();
+    sync_printf("goodbye, child.\n");
 	return OK;
 }
 
@@ -195,9 +196,9 @@ process	main(void) {
 	receive();
     sync_printf("Structure:");
     print_children();
+    kill(pid+1);
+    sync_printf("After killing child (%d):", pid+1);
     kill(pid);
-    sync_printf("After killing head (%d):", pid);
-    print_children();
 	sync_printf("[END-TESTCASE-4]\n\n");
 #endif
 	

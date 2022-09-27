@@ -46,10 +46,10 @@ syscall	kill(
 		xdone();
 	}
 
-	if(!cascading){
+	//if(!cascading){
 		//sync_printf("return message\n");
 		send(prptr->prparent, pid);
-	}
+	//}
 	prptr->prparent = -1;
 	for (i=0; i<3; i++) {
 		close(prptr->prdesc[i]);
