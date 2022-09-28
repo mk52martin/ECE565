@@ -56,7 +56,8 @@ struct procent {		/* Entry in the process table		*/
 	uint32	runtime;		// runtime of process in ms
 	uint32	turnaroundtime;	// used to calculate turnaround time, a more accurate description would be arrival time... updated to turnaround time at death.
 	uint32	num_ctxsw;		// number of times context was switched to this process
-	bool8	user_process;	// pr
+	bool8	user_process;	// process is user or system
+	uint32	pid;			// pid for process
 	int16	prdesc[NDESC];	/* Device descriptors for process	*/
 };
 

@@ -1,5 +1,5 @@
 /* resched.c - resched, resched_cntl */
-
+#define DEBUG_CTXSW 1
 #include <xinu.h>
 
 struct	defer	Defer;
@@ -42,6 +42,9 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	ptnew->prstate = PR_CURR;
 	preempt = QUANTUM;		/* Reset time slice for process	*/
 	ptnew->num_ctxsw++;		
+#ifdef DEBUG_CTXSW
+	printf("ctxsw::%d-%d\n", ptold->pid, ptnew->pid);
+#endif
 	ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
 	
 	/* Old process returns here when resumed */
