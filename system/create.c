@@ -1,5 +1,6 @@
 /* create.c - create, newpid */
-#define DISPLAY_ARRIVAL_CURR_TIME 0
+#define DISPLAY_ARRIVAL_CURR_TIME 	0
+#define DEFAULT_PRIORITY 			30
 
 #include <xinu.h>
 
@@ -50,6 +51,7 @@ pid32	create(
 	prptr->prsem = -1;
 	prptr->prparent = (pid32)getpid();
 	prptr->prhasmsg = FALSE;
+	prptr->user_process = SYSTEM_PROCESS;
 
 	/* Set up stdin, stdout, and stderr descriptors for the shell	*/
 	prptr->prdesc[0] = CONSOLE;
@@ -135,7 +137,6 @@ local	pid32	newpid(void)
 pid32	create_user_process(
 	  void		*funcaddr,	/* Address of the function	*/
 	  uint32	ssize,		/* Stack size in bytes		*/
-	  pri16		priority,	/* Process priority > 0		*/
 	  char		*name,		/* Name (for debugging)		*/
 	  uint32	nargs,		/* Number of args that follow	*/
 	  ...
@@ -153,7 +154,7 @@ pid32	create_user_process(
 	if (ssize < MINSTK)
 		ssize = MINSTK;
 	ssize = (uint32) roundmb(ssize);
-	if ( (priority < 1) || ((pid=newpid()) == SYSERR) ||
+	if ( ((pid=newpid()) == SYSERR) ||
 	     ((saddr = (uint32 *)getstk(ssize)) == (uint32 *)SYSERR) ) {
 		restore(mask);
 		return SYSERR;
@@ -164,7 +165,7 @@ pid32	create_user_process(
 
 	/* Initialize process table entry for new process */
 	prptr->prstate = PR_SUSP;	/* Initial state is suspended	*/
-	prptr->prprio = priority;
+	prptr->prprio = DEFAULT_PRIORITY;
 	prptr->prstkbase = (char *)saddr;
 	prptr->prstklen = ssize;
 	prptr->prname[PNMLEN-1] = NULLCH;
@@ -173,6 +174,7 @@ pid32	create_user_process(
 	prptr->prsem = -1;
 	prptr->prparent = (pid32)getpid();
 	prptr->prhasmsg = FALSE;
+	prptr->user_process = USER_PROCESS;
 
 	/* Set up stdin, stdout, and stderr descriptors for the shell	*/
 	prptr->prdesc[0] = CONSOLE;
@@ -223,27 +225,4 @@ pid32	create_user_process(
 	*pushsp = (unsigned long) (prptr->prstkptr = (char *)saddr);
 	restore(mask);
 	return pid;
-}
-
-/*------------------------------------------------------------------------
- *  newpid  -  Obtain a new (free) process ID
- *------------------------------------------------------------------------
- */
-local	pid32	newpid(void)
-{
-	uint32	i;			/* Iterate through all processes*/
-	static	pid32 nextpid = 1;	/* Position in table to try or	*/
-					/*   one beyond end of table	*/
-
-	/* Check all NPROC slots */
-
-	for (i = 0; i < NPROC; i++) {
-		nextpid %= NPROC;	/* Wrap around to beginning */
-		if (proctab[nextpid].prstate == PR_FREE) {
-			return nextpid++;
-		} else {
-			nextpid++;
-		}
-	}
-	return (pid32) SYSERR;
 }
