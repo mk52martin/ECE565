@@ -3,8 +3,8 @@
 #include <xinu.h>
 #define TEST_SYSCALL_PRINT_READY_LIST 	0
 #define TEST_RUNTIME_TURNAROUND_CTXSW 	0
-#define TEST_USER_PROC					0
-#define TEST_BURST_FUNCTION				1
+#define TEST_USER_PROC					1
+#define TEST_BURST_FUNCTION				0
 
 process spin(void) {
 	while(1);

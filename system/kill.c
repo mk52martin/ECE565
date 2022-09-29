@@ -27,7 +27,20 @@ syscall	kill(
 	if (--prcount <= 1) {		/* Last user process completes	*/
 		xdone();
 	}
+#if DISPLAY_ARRIVAL_CURR_TIME
+	kprintf("Process %d arrival time: %d\n", pid, prptr->turnaroundtime);
+	kprintf("Current Time: %d\n", ((clktime*1000) + ctr1000));
+#endif
 
+	// update turnaround time
+	prptr->turnaroundtime = (clktime*1000) + ctr1000 - prptr->turnaroundtime;
+
+#if DISPLAY_TURNAROUND_TIME
+	kprintf("Process %d turnaround time: %d\n", pid, prptr->turnaroundtime);
+#endif
+#if DISPLAY_CTXSW_TO_PROCESS
+	kprintf("Process %d was switched to %d times.\n", pid, prptr->num_ctxsw);
+#endif
 	send(prptr->prparent, pid);
 	for (i=0; i<3; i++) {
 		close(prptr->prdesc[i]);
@@ -56,21 +69,6 @@ syscall	kill(
 	default:
 		prptr->prstate = PR_FREE;
 	}
-
-#if DISPLAY_ARRIVAL_CURR_TIME
-	kprintf("Process %d arrival time: %d\n", pid, prptr->turnaroundtime);
-	kprintf("Current Time: %d\n", ((clktime*1000) + ctr1000));
-#endif
-
-	// update turnaround time
-	prptr->turnaroundtime = (clktime*1000) + ctr1000 - prptr->turnaroundtime;
-
-#if DISPLAY_TURNAROUND_TIME
-	kprintf("Process %d turnaround time: %d\n", pid, prptr->turnaroundtime);
-#endif
-#if DISPLAY_CTXSW_TO_PROCESS
-	kprintf("Process %d was switched to %d times.\n", pid, prptr->num_ctxsw);
-#endif
 
 	restore(mask);
 	return OK;
