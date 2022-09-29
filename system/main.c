@@ -2,8 +2,9 @@
 
 #include <xinu.h>
 #define TEST_SYSCALL_PRINT_READY_LIST 	0
-#define TEST_RUNTIME_TURNAROUND_CTXSW 	1
+#define TEST_RUNTIME_TURNAROUND_CTXSW 	0
 #define TEST_USER_PROC					0
+#define TEST_BURST_FUNCTION				1
 
 process spin(void) {
 	while(1);
@@ -25,7 +26,15 @@ process hello(void) {
 	} else {
 		printf("I am a system process.\n");
 	}
-	return;
+	return OK;
+}
+
+process burst(void) {
+	uint32 num_burst = 5;
+	uint32 burst_length = 50;
+	uint32 sleep_length = 50;
+	burst_execution(num_burst, burst_length, sleep_length);
+	return OK;
 }
 
 process	main(void)
@@ -55,5 +64,17 @@ process	main(void)
 	resume(pid5);
 	resume(pid6);
 #endif
+#if TEST_BURST_FUNCTION
+	uint32 pid7 = create_user_process((void *)burst, 8192, "burst", 0);
+	uint32 pid8 = create_user_process((void *)burst, 8192, "burst", 0);
+	resume(pid7);
+	resume(pid8);
+	receive();
+	receive();
+	kill(pid7);
+	kill(pid8);
+#endif
 	return OK;
 }
+
+

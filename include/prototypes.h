@@ -43,6 +43,7 @@ extern	syscall	control(did32, int32, int32, int32);
 
 /* in file create.c */
 extern	pid32	create(void *, uint32, pri16, char *, uint32, ...);
+pid32	create_user_process(void *, uint32, char *, uint32, ...);
 
 /* in file ctxsw.S */
 extern	void	ctxsw(void *, void *);
@@ -196,6 +197,9 @@ extern	uint16	getport(void);
 
 /* in file kill.c */
 extern	syscall	kill(pid32);
+
+/* in file func.c */
+extern void 	burst_execution(uint32, uint32, uint32);
 
 /* in file lexan.c */
 extern	int32	lexan(char *, int32, char *, int32 *, int32 [], int32 []);
