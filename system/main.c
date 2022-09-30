@@ -6,6 +6,14 @@
 #define TEST_USER_PROC					1
 #define TEST_BURST_FUNCTION				0
 
+void sync_printf(char *fmt, ...)
+{
+	intmask mask = disable();
+	void *arg = __builtin_apply_args();
+	__builtin_apply((void*)kprintf, arg, 100);
+	restore(mask);
+}
+
 process spin(void) {
 	while(1);
 }

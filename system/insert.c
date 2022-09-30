@@ -42,19 +42,17 @@ status	remove(
 {
 	qid16	next;			/* Holds next node index 		*/
 	qid16	prev;			/* Holds previous node index	*/
-	qid16	curr;			/* Holds current node index		*/
 
-	if (isbadqid(q) || isbadpid(pid)) {
+	if (isbadpid(pid)) {
 		return SYSERR;
 	}
 
-	curr = queuetab[pid];
 
 	/* Remove process from between previous nodes */	
-	prev = queuetab[curr].qprev;	/* Get index of previous node	*/
-	next = queuetab[curr].qnext;	/* Get index of next node	*/
+	prev = queuetab[pid].qprev;	/* Get index of previous node	*/
+	next = queuetab[pid].qnext;	/* Get index of next node	*/
 	queuetab[prev].qnext = next;
-	queuetab[curr].qprev = prev;
+	queuetab[next].qprev = prev;
 
 	return OK;
 }

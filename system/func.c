@@ -1,6 +1,6 @@
 /* func.c - burst_execution */
 #include <xinu.h>
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG
 void sync_printf(char *fmt, ...)
