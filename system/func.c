@@ -1,8 +1,9 @@
 /* func.c - burst_execution */
 #include <xinu.h>
 #define DEBUG 0
+#define MAIN_SYNC 0
 
-#if DEBUG
+#if !MAIN_SYNC
 void sync_printf(char *fmt, ...)
 {
         intmask mask = disable();

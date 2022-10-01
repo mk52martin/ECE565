@@ -1,6 +1,6 @@
 /* create.c - create, newpid */
 #define DISPLAY_ARRIVAL_CURR_TIME 	0
-#define DEFAULT_PRIORITY 			30
+#define DEFAULT_PRIORITY 			0
 
 #include <xinu.h>
 
@@ -129,8 +129,6 @@ local	pid32	newpid(void)
 }
 
 
-
-
 /*------------------------------------------------------------------------
  *  create_user_process  -  Create a user process to start running a function on x86
  *------------------------------------------------------------------------
@@ -227,4 +225,21 @@ pid32	create_user_process(
 	*pushsp = (unsigned long) (prptr->prstkptr = (char *)saddr);
 	restore(mask);
 	return pid;
+}
+
+/*------------------------------------------------------------------------
+ *  Set_Tickets  -  Set tickets for scheduling
+ *------------------------------------------------------------------------
+ */
+void set_tickets(pid32 pid, uint32 tickets) {
+	struct	procent	*prptr;		/* Pointer to proc. table entry */
+	prptr = &proctab[pid];
+	prptr->prprio = tickets;
+	if(prptr->prstate == PR_READY) {
+		remove(pid);
+		insert(pid, readylist, tickets);
+		return;
+	}
+	queuetab[pid].qkey = tickets;
+	return;
 }

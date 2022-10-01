@@ -1,88 +1,83 @@
-/*  main.c  - main */
-
 #include <xinu.h>
-#define TEST_SYSCALL_PRINT_READY_LIST 	0
-#define TEST_RUNTIME_TURNAROUND_CTXSW 	0
-#define TEST_USER_PROC					1
-#define TEST_BURST_FUNCTION				0
+#include <stdio.h>
 
-void sync_printf(char *fmt, ...)
-{
-	intmask mask = disable();
-	void *arg = __builtin_apply_args();
-	__builtin_apply((void*)kprintf, arg, 100);
-	restore(mask);
+void timed_execution(uint32 runtime){
+	    while(proctab[currpid].runtime<runtime);
 }
 
-process spin(void) {
-	while(1);
-}
+int main() {
+	pid32 prA, prB, prC, prD;
 
+	kprintf("\n");
+	
+	kprintf("=== TESTCASE 1::  CPU-intensive jobs =============================\n");
 
-process spin_send(pid32 parent) {
-	struct	procent	*prptr = &proctab[currpid];
-	while(prptr->runtime < 5);
-	send(parent, OK);
-	while(1);
-}
+	prA = create_user_process(timed_execution, 1024, "timed_execution", 1, 10000);
+	prB = create_user_process(timed_execution, 1024, "timed_execution", 1, 10000);
+	prC = create_user_process(timed_execution, 1024, "timed_execution", 1, 10000);
 
-process hello(void) {
-	struct	procent	*prptr = &proctab[currpid];
-	printf("hello! I am process %d\n", currpid);
-	if(prptr->user_process == USER_PROCESS){
-		printf("I am a user process.\n");
-	} else {
-		printf("I am a system process.\n");
-	}
+	set_tickets(prA, 50);
+	set_tickets(prB, 50);
+	set_tickets(prC, 0);
+	
+	resume(prA);
+	resume(prB);
+	resume(prC);
+
+	receive();	
+	receive();	
+
+	sleepms(50); // wait for user processes to terminate	
+
+	kprintf("process %d:: runtime=%d, turnaround time=%d, ctx=%d\n",prA, proctab[prA].runtime, proctab[prA].turnaroundtime, proctab[prA].num_ctxsw);
+	kprintf("process %d:: runtime=%d, turnaround time=%d, ctx=%d\n",prB, proctab[prB].runtime, proctab[prB].turnaroundtime, proctab[prB].num_ctxsw);
+	kprintf("process %d:: runtime=%d, turnaround time=%d, ctx=%d\n",prC, proctab[prC].runtime, proctab[prC].turnaroundtime, proctab[prC].num_ctxsw);
+
+	set_tickets(prC,1);
+	
+	receive();	
+   
+	sleepms(20); // wait for user processes to terminate	
+ 
+	kprintf("process %d:: runtime=%d, turnaround time=%d, ctx=%d\n",prC, proctab[prC].runtime, proctab[prC].turnaroundtime, proctab[prC].num_ctxsw);
+
+	prD = create_user_process(timed_execution, 1024, "timed_execution", 1, 10000);
+	set_tickets(prD,1);
+	resume(prD);
+	
+	receive();	
+	
+	sleepms(20); // wait for user processes to terminate	
+	
+	kprintf("process %d:: runtime=%d, turnaround time=%d, ctx=%d\n",prD, proctab[prD].runtime, proctab[prD].turnaroundtime, proctab[prD].num_ctxsw);
+
+	kprintf("==================================================================\n\n");
+
+	kprintf("=== TESTCASE 2::  interactive jobs ===============================\n");
+
+	prA = create_user_process(burst_execution, 1024, "burst_execution", 3, 10, 500, 500);
+	prB = create_user_process(burst_execution, 1024, "burst_execution", 3, 10, 500, 500);
+	prC = create_user_process(burst_execution, 1024, "burst_execution", 3, 10, 500, 500);
+
+	set_tickets(prA, 80);
+	set_tickets(prB, 10);
+	set_tickets(prC, 10);
+	
+	resume(prA);
+	resume(prB);
+	resume(prC);
+
+	receive();	
+	receive();	
+	receive();	
+
+	sleepms(50); // wait for user processes to terminate	
+
+	kprintf("process %d:: runtime=%d, turnaround time=%d, ctx=%d\n",prA, proctab[prA].runtime, proctab[prA].turnaroundtime, proctab[prA].num_ctxsw);
+	kprintf("process %d:: runtime=%d, turnaround time=%d, ctx=%d\n",prB, proctab[prB].runtime, proctab[prB].turnaroundtime, proctab[prB].num_ctxsw);
+	kprintf("process %d:: runtime=%d, turnaround time=%d, ctx=%d\n",prC, proctab[prC].runtime, proctab[prC].turnaroundtime, proctab[prC].num_ctxsw);
+
+	kprintf("==================================================================\n\n");
+
 	return OK;
 }
-
-process burst(void) {
-	uint32 num_burst = 5;
-	uint32 burst_length = 50;
-	uint32 sleep_length = 50;
-	burst_execution(num_burst, burst_length, sleep_length);
-	return OK;
-}
-
-process	main(void)
-{
-#if TEST_SYSCALL_PRINT_READY_LIST
-	uint32 pid = create((void *)spin, 8192, 10, "spin", 0);
-	resume(pid);
-	uint32 pid2 = create((void *)spin, 8192, 10, "spin", 0);
-	resume(pid2);
-	printf("New Processes: %d, %d\n", pid, pid2);
-	print_ready_list();
-#endif
-#if TEST_RUNTIME_TURNAROUND_CTXSW
-	uint32 pid3 = create((void *)spin_send, 8192, 10, "spin", 1, currpid);
-	resume(pid3);
-	uint32 pid4 = create((void *)spin_send, 8192, 10, "spin", 1, currpid);
-	resume(pid4);
-	printf("New Processes: %d, %d\n", pid3, pid4);
-	receive();
-	receive();
-	kill(pid3);
-	kill(pid4);
-#endif
-#if TEST_USER_PROC
-	uint32 pid5 = create_user_process((void *)hello, 8192, "hello_user", 0);
-	uint32 pid6 = create((void *)hello, 8192, 10, "hello_sys", 0);
-	resume(pid5);
-	resume(pid6);
-#endif
-#if TEST_BURST_FUNCTION
-	uint32 pid7 = create_user_process((void *)burst, 8192, "burst", 0);
-	uint32 pid8 = create_user_process((void *)burst, 8192, "burst", 0);
-	resume(pid7);
-	resume(pid8);
-	receive();
-	receive();
-	kill(pid7);
-	kill(pid8);
-#endif
-	return OK;
-}
-
-

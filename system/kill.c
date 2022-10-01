@@ -1,9 +1,9 @@
 /* kill.c - kill */
 
 #include <xinu.h>
-#define DISPLAY_TURNAROUND_TIME 1
+#define DISPLAY_TURNAROUND_TIME 0
 #define DISPLAY_ARRIVAL_CURR_TIME 0
-#define DISPLAY_CTXSW_TO_PROCESS 1
+#define DISPLAY_CTXSW_TO_PROCESS 0
 
 /*------------------------------------------------------------------------
  *  kill  -  Kill a process and remove it from the system
@@ -27,6 +27,14 @@ syscall	kill(
 	if (--prcount <= 1) {		/* Last user process completes	*/
 		xdone();
 	}
+
+	send(prptr->prparent, pid);
+	for (i=0; i<3; i++) {
+		close(prptr->prdesc[i]);
+	}
+	freestk(prptr->prstkbase, prptr->prstklen);
+
+
 #if DISPLAY_ARRIVAL_CURR_TIME
 	kprintf("Process %d arrival time: %d\n", pid, prptr->turnaroundtime);
 	kprintf("Current Time: %d\n", ((clktime*1000) + ctr1000));
@@ -40,12 +48,8 @@ syscall	kill(
 #endif
 #if DISPLAY_CTXSW_TO_PROCESS
 	kprintf("Process %d was switched to %d times.\n", pid, prptr->num_ctxsw);
+	kprintf("Process %d was in state %d.\n", pid, prptr->prstate);
 #endif
-	send(prptr->prparent, pid);
-	for (i=0; i<3; i++) {
-		close(prptr->prdesc[i]);
-	}
-	freestk(prptr->prstkbase, prptr->prstklen);
 
 	switch (prptr->prstate) {
 	case PR_CURR:

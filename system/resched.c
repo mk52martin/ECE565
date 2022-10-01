@@ -1,7 +1,8 @@
 /* resched.c - resched, resched_cntl */
-#define DEBUG_CTXSW 1
-#define DEBUG		0
-#define LOTTERY		1
+#define DEBUG_CTXSW 	0
+#define DEBUG			0
+#define DEBUG_LOTTERY 	0
+#define LOTTERY			1
 #include <xinu.h>
 #include <stdlib.h>
 
@@ -18,6 +19,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	struct procent *search;		/* Ptr to search processes						*/
 	qid16	curr;				/* readylist pointer for queue					*/
 	qid16	system_process = 0; /* id for system process with highest priority 	*/
+	qid16	rm;					/* if there is process to remove				*/
 	uint32 	lottery_size = 0;	/* lottery size									*/
 	uint32 	lottery_number;
 
@@ -32,7 +34,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 
 #if LOTTERY
 #if DEBUG
-	print_ready_list();
+	//print_ready_list();
 #endif
 
 	// Check for system processes & find lottery size
@@ -48,6 +50,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 #if DEBUG
 		sync_printf("Found process %d.\n", curr);
 #endif
+
 		lottery_size += queuetab[curr].qkey;
 		curr = queuetab[curr].qnext;
 	}
@@ -82,11 +85,11 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		currpid = system_process;
 		ptnew = &proctab[system_process];								// set new process to ready
 		remove(system_process);	
-	} else if (ptold->user_process == SYSTEM_PROCESS && ptold->prstate == PR_CURR) {
-		// return to only running system process
+	} else if (ptold->user_process == SYSTEM_PROCESS && ptold->prstate == PR_CURR && system_process != 0) {
 #if DEBUG
 		//sync_printf("Currently running only system process %d.\n", currpid);
 #endif
+		// return to only running system process
 		return;
 	} else if(firstid(readylist) == 0 && ptold->prstate != PR_CURR) { // if null is only process
 		remove(0);	
@@ -101,30 +104,50 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 				return;
 			}
 	} else {	// lottery
-#if DEBUG
+#if DEBUG || DEBUG_LOTTERY
 		sync_printf("Lottery Scheduling.\n", system_process);
-		print_ready_list();
 #endif
-		lottery_size += ptold->prprio;
-		insert(currpid, readylist, ptold->prprio);	
-		lottery_number = rand() % lottery_size;
-		curr = firstid(readylist);
-		while(lottery_number > queuetab[curr].qkey) {
-			lottery_number -= queuetab[curr].qkey;
-			curr = queuetab[curr].qnext;
+		if (ptold->prstate == PR_CURR) { // eligible
+			if(lottery_size == 0) {
+				return;
+			}
+			lottery_size += ptold->prprio;
+			ptold->prstate = PR_READY;
+			insert(currpid, readylist, ptold->prprio);	
 		}
-		currpid = curr;
-		ptnew = &proctab[currpid];
-		remove(curr);
-		if(ptnew == ptold) {
-			return;
+#if DEBUG || DEBUG_LOTTERY
+		sync_printf("Lottery size: %d\n", lottery_size);
+		print_ready_list_with_tickets();
+#endif
+		if(lottery_size == 0) {
+			remove(0);	
+			currpid = 0;
+			ptnew = &proctab[currpid];							// set new process to ready
+		} else {
+			lottery_number = rand() % lottery_size;
+			curr = firstid(readylist);
+			while(lottery_number > queuetab[curr].qkey) {
+				lottery_number -= queuetab[curr].qkey;
+				curr = queuetab[curr].qnext;
+			}
+			currpid = curr;
+			ptnew = &proctab[currpid];
+			remove(curr);
+			if(ptnew == ptold) {
+				ptnew->prstate = PR_CURR;
+				return;
+			}
 		}
 	}
 #if DEBUG
 	sync_printf("Running %d.\n", currpid);
 #endif
 	ptnew->prstate = PR_CURR;
-	preempt = QUANTUM;		/* Reset time slice for process	*/
+	preempt = QUANTUM;		/* Reset time slice for process	*/	
+	ptnew->num_ctxsw++;		
+#if DEBUG_CTXSW
+	kprintf("ctxsw::%d-%d\n", ptold->pid, ptnew->pid);
+#endif
 	ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
 #else
 /* Point to process table entry for the current (old) process */
@@ -208,24 +231,58 @@ syscall print_ready_list() {
 	qid16 tail = queuetail(readylist);												//find head
 	qid16 it = firstid(readylist);									
 
-	sync_printf("List of ready processes from readylist:\n%d", it);						// print first item
+	kprintf("List of ready processes from readylist:\n%d", it);						// print first item
 	if(it == 301)  {
-		sync_printf("\n");
+		kprintf("\n");
 		return OK;
 	}
 	it = queuetab[it].qnext;
 	while(queuetab[it].qnext != tail) {												// cycle through readylist
-		sync_printf(", %d", it);	
+		kprintf(", %d", it);	
 		if(it == 301)  {
-			sync_printf("\n");
+			kprintf("\n");
 			return OK;
 		}
 		it = queuetab[it].qnext;
 	}
 	if(it != firstid(readylist)) {													// print tail if >1 process
-		sync_printf(", %d", it);
+		kprintf(", %d", it);
 	}
-	sync_printf("\n");
+	kprintf("\n");
+
+	//reenable interrupts
+	restore(mask);
+	return OK;
+}
+
+syscall print_ready_list_with_tickets() {
+	// disable interrupts
+	intmask mask;
+	mask = disable();
+	
+
+	//print readylist
+	qid16 tail = queuetail(readylist);												//find head
+	qid16 it = firstid(readylist);									
+
+	kprintf("List of ready processes from readylist:\n%d (%d)", it, queuetab[it].qkey);						// print first item
+	if(it == 301)  {
+		kprintf("\n");
+		return OK;
+	}
+	it = queuetab[it].qnext;
+	while(queuetab[it].qnext != tail) {												// cycle through readylist
+		kprintf(", %d (%d)", it, queuetab[it].qkey);	
+		if(it == 301)  {
+			kprintf("\n");
+			return OK;
+		}
+		it = queuetab[it].qnext;
+	}
+	if(it != firstid(readylist)) {													// print tail if >1 process
+		kprintf(", %d (%d)", it, queuetab[it].qkey);
+	}
+	kprintf("\n");
 
 	//reenable interrupts
 	restore(mask);
