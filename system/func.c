@@ -29,7 +29,8 @@ void burst_execution(uint32 number_bursts, uint32 burst_duration, uint32 sleep_d
         sync_printf("new cycle for %d @%d, runtime: %d\n", currpid, ((clktime*1000) + ctr1000), prptr->runtime);
 #endif
         counter = 0;
-        end_time = prptr->runtime + burst_duration - 1;
+        //end_time = prptr->runtime + burst_duration - 1;
+        end_time = prptr->runtime + burst_duration;
         while(prptr->runtime < end_time) {
             counter++;
         }

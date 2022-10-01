@@ -36,12 +36,14 @@ syscall	kill(
 
 
 #if DISPLAY_ARRIVAL_CURR_TIME
-	kprintf("Process %d arrival time: %d\n", pid, prptr->turnaroundtime);
+	kprintf("Process %d arrival time: %d\n", pid, prptr->arrivaltime);
 	kprintf("Current Time: %d\n", ((clktime*1000) + ctr1000));
 #endif
 
 	// update turnaround time
-	prptr->turnaroundtime = (clktime*1000) + ctr1000 - prptr->turnaroundtime;
+	if(prptr->num_ctxsw != 0) {
+		prptr->turnaroundtime = (clktime*1000) + ctr1000 - prptr->arrivaltime;
+	}
 
 #if DISPLAY_TURNAROUND_TIME
 	kprintf("Process %d turnaround time: %d\n", pid, prptr->turnaroundtime);
