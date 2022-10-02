@@ -94,12 +94,29 @@ syscall print_ready_list() {
 	intmask mask;
 	mask = disable();
 	
+	printf("List of ready processes from readylist_service:\n");						
+	print_queue(readylist_service);
 
-	//print readylist
+	printf("List of ready processes from readylist_high:\n");						
+	print_queue(readylist_high);
+
+	printf("List of ready processes from readylist_med:\n");						
+	print_queue(readylist_med);
+
+	printf("List of ready processes from readylist_low:\n");						
+	print_queue(readylist_low);
+
+	//reenable interrupts
+	restore(mask);
+	return OK;
+}
+
+
+void print_queue(qid16 q) {
+		//print readylist
 	qid16 tail = queuetail(readylist_service);												//find head
 	qid16 it = firstid(readylist_service);									
-
-	printf("List of ready processes from readylist:\n%d", it);						// print first item
+	printf("%d", it);
 	it = queuetab[it].qnext;
 	while(queuetab[it].qnext != tail) {												// cycle through readylist
 		printf(", %d", it);	
@@ -109,8 +126,4 @@ syscall print_ready_list() {
 		printf(", %d", it);
 	}
 	printf("\n");
-
-	//reenable interrupts
-	restore(mask);
-	return OK;
 }

@@ -461,6 +461,7 @@ extern	umsg32	recvtime(int32);
 extern	void	resched(void);
 extern	status	resched_cntl(int32);
 extern 	syscall	print_ready_list(void); 
+extern 	void	print_queue(qid16);
 
 /* in file intutils.S */
 extern	void	restore(intmask);
