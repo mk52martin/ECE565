@@ -3,6 +3,9 @@
 #include <xinu.h>
 
 qid16	readylist_service;			/* Index of ready list		*/
+qid16	readylist_high;				/* Index of high prio ready list*/
+qid16	readylist_med;				/* Index of med prio ready list*/
+qid16	readylist_low;				/* Index of low prio ready list*/
 
 /*------------------------------------------------------------------------
  *  ready  -  Make a process eligible for CPU service

@@ -209,6 +209,9 @@ static	void	sysinit()
 	/* Create a ready list for processes */
 
 	readylist_service = newqueue();
+	readylist_high = newqueue();
+	readylist_med = newqueue();
+	readylist_low = newqueue();
 
 
 	/* initialize the PCI bus */
