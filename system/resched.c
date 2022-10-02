@@ -25,19 +25,19 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	ptold = &proctab[currpid];
 
 	if (ptold->prstate == PR_CURR) {  /* Process remains eligible */
-		if (ptold->prprio > firstkey(readylist)) {
+		if (ptold->prprio > firstkey(readylist_service)) {
 			return;
 		}
 
 		/* Old process will no longer remain current */
 
 		ptold->prstate = PR_READY;
-		insert(currpid, readylist, ptold->prprio);
+		insert(currpid, readylist_service, ptold->prprio);
 	}
 
 	/* Force context switch to highest priority ready process */
 
-	currpid = dequeue(readylist);
+	currpid = dequeue(readylist_service);
 	ptnew = &proctab[currpid];
 	ptnew->prstate = PR_CURR;
 	preempt = QUANTUM;		/* Reset time slice for process	*/
@@ -96,8 +96,8 @@ syscall print_ready_list() {
 	
 
 	//print readylist
-	qid16 tail = queuetail(readylist);												//find head
-	qid16 it = firstid(readylist);									
+	qid16 tail = queuetail(readylist_service);												//find head
+	qid16 it = firstid(readylist_service);									
 
 	printf("List of ready processes from readylist:\n%d", it);						// print first item
 	it = queuetab[it].qnext;
@@ -105,7 +105,7 @@ syscall print_ready_list() {
 		printf(", %d", it);	
 		it = queuetab[it].qnext;
 	}
-	if(it != firstid(readylist)) {													// print tail if >1 process
+	if(it != firstid(readylist_service)) {													// print tail if >1 process
 		printf(", %d", it);
 	}
 	printf("\n");
