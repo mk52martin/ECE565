@@ -79,7 +79,7 @@ void	nulluser()
 	enable();
 
 	/* Initialize the network stack and start processes */
-
+	//proctab[0].queue = readylist_service;
 	net_init();
 
 	/* Create a process to finish startup and start main */

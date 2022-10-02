@@ -1,5 +1,6 @@
 /* resched.c - resched, resched_cntl */
-#define DEBUG_CTXSW 1
+#define DEBUG_CTXSW 	1
+#define MLFQ			1
 #include <xinu.h>
 
 struct	defer	Defer;
@@ -24,6 +25,40 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 
 	ptold = &proctab[currpid];
 
+	#if MLFQ
+	
+	if (ptold->prstate == PR_CURR) {  /* Process remains eligible */
+		/* Old process will no longer remain current */
+		ptold->prstate = PR_READY;
+		insert(currpid, ptold->queue, ptold->prprio);
+	}
+	//sync_printf("currpid = %d, status: %d, ptqueue = %d\n", currpid, ptold->prstate, ptold->queue);
+	//print_ready_list();
+
+	if(!check_empty(readylist_service)) {
+		currpid = dequeue(readylist_service);
+		preempt = QUANTUM;
+	} else if (!check_empty(readylist_high)) {
+		currpid = dequeue(readylist_high);
+		preempt = QUANTUM;
+	} else if (!check_empty(readylist_med)) {
+		currpid = dequeue(readylist_med);
+		preempt = QUANTUM;
+	} else if (!check_empty(readylist_low)) {
+		currpid = dequeue(readylist_low);
+		preempt = QUANTUM;
+	} else {
+		currpid = 0;
+		preempt = QUANTUM * 4;
+	}
+	ptnew = &proctab[currpid];
+	ptnew->prstate = PR_CURR;
+	
+	if(ptnew == ptold) {
+		return;
+	}
+	#endif
+	#if !MLFQ
 	if (ptold->prstate == PR_CURR) {  /* Process remains eligible */
 		if (ptold->prprio > firstkey(readylist_service)) {
 			return;
@@ -41,10 +76,13 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	ptnew = &proctab[currpid];
 	ptnew->prstate = PR_CURR;
 	preempt = QUANTUM;		/* Reset time slice for process	*/
+	#endif
+
+
 	ptnew->num_ctxsw++;		
-#ifdef DEBUG_CTXSW
+	#ifdef DEBUG_CTXSW
 	printf("ctxsw::%d-%d\n", ptold->pid, ptnew->pid);
-#endif
+	#endif
 	ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
 	
 	/* Old process returns here when resumed */
@@ -125,10 +163,6 @@ void print_queue(qid16 q) {
 		it = queuetab[it].qnext;
 		sync_printf(", %d", it);	
 	}
-	
-	// if(it != firstid(q)) {													// print tail if >1 process
-	// 	sync_printf(", %d", it);
-	// }
 	sync_printf("\n");
 }
 
@@ -139,4 +173,25 @@ bool8 check_empty(qid16 q) {
 		return TRUE;
 	}
 	return FALSE;
+}
+
+void demote(pid32 pid) {
+	qid16 newq;
+	struct	procent	*prptr;	
+	prptr = &proctab[pid];
+	if(prptr->queue == readylist_low) {
+		return;
+	}
+	if(prptr->queue == readylist_service) {
+		return;
+	}
+	getitem(pid);
+	if(prptr->queue == readylist_high) {
+		newq = readylist_med;
+	} else if (prptr->queue == readylist_med) {
+		newq = readylist_low;
+	}
+	prptr->queue = newq;
+	insert(pid, newq, prptr->prprio);
+	return;
 }

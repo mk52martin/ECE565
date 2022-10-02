@@ -458,11 +458,16 @@ extern	umsg32	recvclr(void);
 /* in file recvtime.c */
 extern	umsg32	recvtime(int32);
 
+/* in file func.c */
+void burst_execution(uint32, uint32, uint32);
+void sync_printf(char *, ...);
+
 /* in file resched.c */
 extern	void	resched(void);
 extern	status	resched_cntl(int32);
 extern 	syscall	print_ready_list(void); 
 extern 	void	print_queue(qid16);
+extern	bool8 	check_empty(qid16);
 
 /* in file intutils.S */
 extern	void	restore(intmask);
