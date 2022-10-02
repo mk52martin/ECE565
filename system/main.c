@@ -25,7 +25,7 @@ process hello(void) {
 	} else {
 		printf("I am a system process.\n");
 	}
-	return;
+	return OK;
 }
 
 process	main(void)
@@ -39,9 +39,9 @@ process	main(void)
 	print_ready_list();
 #endif
 #if TEST_RUNTIME_TURNAROUND_CTXSW
-	uint32 pid3 = create((void *)spin_send, 8192, 10, "spin", 1, currpid);
+	uint32 pid3 = create_user_process((void *)spin_send, 8192, "spin", 1, currpid);
 	resume(pid3);
-	uint32 pid4 = create((void *)spin_send, 8192, 10, "spin", 1, currpid);
+	uint32 pid4 = create_user_process((void *)spin_send, 8192, "spin", 1, currpid);
 	resume(pid4);
 	printf("New Processes: %d, %d\n", pid3, pid4);
     print_ready_list();

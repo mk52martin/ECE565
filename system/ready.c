@@ -26,7 +26,7 @@ status	ready(
 	prptr = &proctab[pid];
 	prptr->prstate = PR_READY;
 	//print_ready_list();
-	insert(pid, readylist_service, prptr->prprio);
+	insert(pid, prptr->queue, prptr->prprio);
 	//print_ready_list();
 	resched();
 

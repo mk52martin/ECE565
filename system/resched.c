@@ -125,8 +125,18 @@ void print_queue(qid16 q) {
 		it = queuetab[it].qnext;
 		sync_printf(", %d", it);	
 	}
-	if(it != firstid(q)) {													// print tail if >1 process
-		sync_printf(", %d", it);
-	}
+	
+	// if(it != firstid(q)) {													// print tail if >1 process
+	// 	sync_printf(", %d", it);
+	// }
 	sync_printf("\n");
+}
+
+bool8 check_empty(qid16 q) {
+	qid16 tail = queuetail(q);												//find head
+	qid16 it = firstid(q);	
+	if(it == tail) {
+		return TRUE;
+	}
+	return FALSE;
 }
