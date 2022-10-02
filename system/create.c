@@ -58,7 +58,8 @@ pid32	create(
 	prptr->prdesc[0] = CONSOLE;
 	prptr->prdesc[1] = CONSOLE;
 	prptr->prdesc[2] = CONSOLE;
-	prptr->turnaroundtime = (clktime*1000) + ctr1000;
+	prptr->arrivaltime = (clktime*1000) + ctr1000;
+	prptr->queue = readylist_service;
 #if DISPLAY_ARRIVAL_CURR_TIME
 	printf("Time of process %d creation: %d\n", pid, ((clktime*1000) + ctr1000));
 #endif
@@ -182,7 +183,8 @@ pid32	create_user_process(
 	prptr->prdesc[0] = CONSOLE;
 	prptr->prdesc[1] = CONSOLE;
 	prptr->prdesc[2] = CONSOLE;
-	prptr->turnaroundtime = (clktime*1000) + ctr1000;
+	prptr->arrivaltime = (clktime*1000) + ctr1000;
+	prptr->queue = readylist_high;
 #if DISPLAY_ARRIVAL_CURR_TIME
 	printf("Time of process %d creation: %d\n", pid, ((clktime*1000) + ctr1000));
 #endif

@@ -25,7 +25,7 @@ void	clkhandler()
 	ctr1000 = 1000 - count1000;
 	struct	procent	*prptr = &proctab[currpid];
 	prptr->runtime++;
-
+	prptr->timeallotment++;
 	/* Handle sleeping processes if any exist */
 
 	if(!isempty(sleepq)) {
