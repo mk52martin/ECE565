@@ -1,4 +1,4 @@
-/* insert.c - insert */
+/* insert.c - insert, remove */
 
 #include <xinu.h>
 
@@ -32,5 +32,27 @@ status	insert(
 	queuetab[pid].qkey = key;
 	queuetab[prev].qnext = pid;
 	queuetab[curr].qprev = pid;
+	return OK;
+}
+
+
+status	remove(
+	  pid32		pid			/* ID of process to rmeove from queue	*/
+	)
+{
+	qid16	next;			/* Holds next node index 		*/
+	qid16	prev;			/* Holds previous node index	*/
+
+	if (isbadpid(pid)) {
+		return SYSERR;
+	}
+
+
+	/* Remove process from between previous nodes */	
+	prev = queuetab[pid].qprev;	/* Get index of previous node	*/
+	next = queuetab[pid].qnext;	/* Get index of next node	*/
+	queuetab[prev].qnext = next;
+	queuetab[next].qprev = prev;
+
 	return OK;
 }

@@ -8,5 +8,6 @@
  */
 void	userret(void)
 {
+	//printf("%d is dying...\n", getpid());
 	kill(getpid());			/* Force process to exit */
 }
