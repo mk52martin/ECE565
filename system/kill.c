@@ -1,9 +1,9 @@
 /* kill.c - kill */
 
 #include <xinu.h>
-#define DISPLAY_TURNAROUND_TIME 1
+#define DISPLAY_TURNAROUND_TIME 0
 #define DISPLAY_ARRIVAL_CURR_TIME 0
-#define DISPLAY_CTXSW_TO_PROCESS 1
+#define DISPLAY_CTXSW_TO_PROCESS 0
 
 /*------------------------------------------------------------------------
  *  kill  -  Kill a process and remove it from the system
