@@ -27,7 +27,7 @@ status	ready(
 	prptr->prstate = PR_READY;
 	//print_ready_list();
 	insert(pid, readylist_service, prptr->prprio);
-	print_ready_list();
+	//print_ready_list();
 	resched();
 
 	return OK;

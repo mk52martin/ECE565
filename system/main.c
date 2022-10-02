@@ -44,6 +44,7 @@ process	main(void)
 	uint32 pid4 = create((void *)spin_send, 8192, 10, "spin", 1, currpid);
 	resume(pid4);
 	printf("New Processes: %d, %d\n", pid3, pid4);
+    print_ready_list();
 	receive();
 	receive();
 	kill(pid3);

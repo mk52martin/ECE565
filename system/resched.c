@@ -94,16 +94,16 @@ syscall print_ready_list() {
 	intmask mask;
 	mask = disable();
 	
-	printf("List of ready processes from readylist_service:\n");						
+	sync_printf("List of ready processes from readylist_service:\n");						
 	print_queue(readylist_service);
 
-	printf("List of ready processes from readylist_high:\n");						
+	sync_printf("List of ready processes from readylist_high:\n");						
 	print_queue(readylist_high);
 
-	printf("List of ready processes from readylist_med:\n");						
+	sync_printf("List of ready processes from readylist_med:\n");						
 	print_queue(readylist_med);
 
-	printf("List of ready processes from readylist_low:\n");						
+	sync_printf("List of ready processes from readylist_low:\n");						
 	print_queue(readylist_low);
 
 	//reenable interrupts
@@ -114,16 +114,19 @@ syscall print_ready_list() {
 
 void print_queue(qid16 q) {
 		//print readylist
-	qid16 tail = queuetail(readylist_service);												//find head
-	qid16 it = firstid(readylist_service);									
-	printf("%d", it);
-	it = queuetab[it].qnext;
+	qid16 tail = queuetail(q);												//find head
+	qid16 it = firstid(q);	
+	if(it == tail) {
+		sync_printf("Empty.\n");
+		return;
+	}							
+	sync_printf("%d", it);
 	while(queuetab[it].qnext != tail) {												// cycle through readylist
-		printf(", %d", it);	
 		it = queuetab[it].qnext;
+		sync_printf(", %d", it);	
 	}
-	if(it != firstid(readylist_service)) {													// print tail if >1 process
-		printf(", %d", it);
+	if(it != firstid(q)) {													// print tail if >1 process
+		sync_printf(", %d", it);
 	}
-	printf("\n");
+	sync_printf("\n");
 }
