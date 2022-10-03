@@ -44,9 +44,11 @@ process	main(void)
 	uint32 pid4 = create_user_process((void *)spin_send, 8192, "spin", 1, currpid);
 	resume(pid4);
 	printf("New Processes: %d, %d\n", pid3, pid4);
-    print_ready_list();
-	receive();
-	receive();
+    int i = 0;
+	for(; i < 12; i++){
+		print_ready_list();
+		sleepms(20);
+	}
 	kill(pid3);
 	kill(pid4);
 #endif

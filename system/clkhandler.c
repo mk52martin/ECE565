@@ -38,9 +38,14 @@ void	clkhandler()
 		}
 	}
 
+
+	if((++boost) >= PRIORITY_BOOST_PERIOD) {
+		//sync_printf("BOOST!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+		boost_priority();
+		boost = 0;
+	}
 	/* Decrement the preemption counter, and reschedule when the */
 	/*   remaining time reaches zero			     */
-
 	if((--preempt) <= 0) {
 		preempt = QUANTUM;
 		resched();

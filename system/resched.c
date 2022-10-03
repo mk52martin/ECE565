@@ -26,14 +26,18 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	ptold = &proctab[currpid];
 
 	#if MLFQ
-	
+	if(ptold->timeallotment > TIME_ALLOTMENT) {
+		demote(currpid);
+	}
 	if (ptold->prstate == PR_CURR) {  /* Process remains eligible */
 		/* Old process will no longer remain current */
 		ptold->prstate = PR_READY;
 		insert(currpid, ptold->queue, ptold->prprio);
 	}
 	//sync_printf("currpid = %d, status: %d, ptqueue = %d\n", currpid, ptold->prstate, ptold->queue);
-	//print_ready_list();
+	// if(currpid == 4 || currpid == 5 || currpid == 6){
+	// 	print_ready_list();
+	// }
 
 	if(!check_empty(readylist_service)) {
 		currpid = dequeue(readylist_service);
@@ -43,10 +47,10 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		preempt = QUANTUM;
 	} else if (!check_empty(readylist_med)) {
 		currpid = dequeue(readylist_med);
-		preempt = QUANTUM;
+		preempt = QUANTUM * 2;
 	} else if (!check_empty(readylist_low)) {
 		currpid = dequeue(readylist_low);
-		preempt = QUANTUM;
+		preempt = QUANTUM * 4;
 	} else {
 		currpid = 0;
 		preempt = QUANTUM * 4;
@@ -81,7 +85,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 
 	ptnew->num_ctxsw++;		
 	#ifdef DEBUG_CTXSW
-	printf("ctxsw::%d-%d\n", ptold->pid, ptnew->pid);
+	sync_printf("ctxsw::%d-%d\n", ptold->pid, ptnew->pid);
 	#endif
 	ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
 	
@@ -179,19 +183,42 @@ void demote(pid32 pid) {
 	qid16 newq;
 	struct	procent	*prptr;	
 	prptr = &proctab[pid];
+	prptr->timeallotment = 0;
+	if(pid == 0) {
+		return;
+	}
 	if(prptr->queue == readylist_low) {
 		return;
 	}
 	if(prptr->queue == readylist_service) {
 		return;
 	}
-	getitem(pid);
+	sync_printf("Demote %d.\n", pid);
 	if(prptr->queue == readylist_high) {
 		newq = readylist_med;
 	} else if (prptr->queue == readylist_med) {
 		newq = readylist_low;
 	}
 	prptr->queue = newq;
-	insert(pid, newq, prptr->prprio);
+	//getitem(pid);
+	//insert(pid, newq, prptr->prprio);
+	return;
+}
+
+void boost_priority(void) {
+	int i = 0;
+	struct	procent	*prptr;	
+	while(i < NPROC) {
+		prptr = &proctab[i];
+		if(prptr->queue != readylist_service){
+			if(prptr->prstate == PR_READY) {
+				getitem(i);
+				insert(i, readylist_high, prptr->prprio);
+			}
+			prptr->queue = readylist_high;
+		}
+		i++;
+	}
+	//print_ready_list();
 	return;
 }

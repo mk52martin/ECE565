@@ -15,3 +15,4 @@ extern  uint32	count1000;		/* ticks since clktime		*/
 
 extern	qid16	sleepq;			/* queue for sleeping processes	*/
 extern	uint32	preempt;		/* preemption counter		*/
+extern  uint32  boost;

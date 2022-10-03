@@ -468,6 +468,8 @@ extern	status	resched_cntl(int32);
 extern 	syscall	print_ready_list(void); 
 extern 	void	print_queue(qid16);
 extern	bool8 	check_empty(qid16);
+extern	void 	demote	(pid32);
+extern	void	boost_priority(void);
 
 /* in file intutils.S */
 extern	void	restore(intmask);
