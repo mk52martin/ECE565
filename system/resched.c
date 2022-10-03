@@ -1,5 +1,5 @@
 /* resched.c - resched, resched_cntl */
-#define DEBUG_CTXSW 	1
+#define DEBUG_CTXSW 	0
 #define MLFQ			1
 #include <xinu.h>
 
@@ -13,6 +13,8 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 {
 	struct procent *ptold;	/* Ptr to table entry for old process	*/
 	struct procent *ptnew;	/* Ptr to table entry for new process	*/
+	//uint32 time;
+	preempt = QUANTUM;
 
 	/* If rescheduling is deferred, record attempt and return */
 
@@ -34,26 +36,22 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		ptold->prstate = PR_READY;
 		insert(currpid, ptold->queue, ptold->prprio);
 	}
-	//sync_printf("currpid = %d, status: %d, ptqueue = %d\n", currpid, ptold->prstate, ptold->queue);
-	// if(currpid == 4 || currpid == 5 || currpid == 6){
-	// 	print_ready_list();
-	// }
 
 	if(!check_empty(readylist_service)) {
 		currpid = dequeue(readylist_service);
-		preempt = QUANTUM;
+		//time = QUANTUM;
 	} else if (!check_empty(readylist_high)) {
 		currpid = dequeue(readylist_high);
-		preempt = QUANTUM;
-	} else if (!check_empty(readylist_med)) {
+		//time = QUANTUM;
+	} else if (!check_empty(readylist_med) && !(quantum_counter % 2)) {
 		currpid = dequeue(readylist_med);
-		preempt = QUANTUM * 2;
-	} else if (!check_empty(readylist_low)) {
+		//time = QUANTUM * 2;
+	} else if (!check_empty(readylist_low) && !(quantum_counter % 4)) {
 		currpid = dequeue(readylist_low);
-		preempt = QUANTUM * 4;
+		//time = QUANTUM * 4;
 	} else {
 		currpid = 0;
-		preempt = QUANTUM * 4;
+		//time = QUANTUM;
 	}
 	ptnew = &proctab[currpid];
 	ptnew->prstate = PR_CURR;
@@ -84,9 +82,10 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 
 
 	ptnew->num_ctxsw++;		
-	#ifdef DEBUG_CTXSW
+	#if DEBUG_CTXSW
 	sync_printf("ctxsw::%d-%d\n", ptold->pid, ptnew->pid);
 	#endif
+	preempt = QUANTUM;
 	ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
 	
 	/* Old process returns here when resumed */
@@ -180,7 +179,6 @@ bool8 check_empty(qid16 q) {
 }
 
 void demote(pid32 pid) {
-	qid16 newq;
 	struct	procent	*prptr;	
 	prptr = &proctab[pid];
 	prptr->timeallotment = 0;
@@ -193,7 +191,8 @@ void demote(pid32 pid) {
 	if(prptr->queue == readylist_service) {
 		return;
 	}
-	sync_printf("Demote %d.\n", pid);
+	qid16 newq;
+	//sync_printf("Demote %d.\n", pid);
 	if(prptr->queue == readylist_high) {
 		newq = readylist_med;
 	} else if (prptr->queue == readylist_med) {
@@ -206,19 +205,22 @@ void demote(pid32 pid) {
 }
 
 void boost_priority(void) {
-	int i = 0;
+	int i = 4;
 	struct	procent	*prptr;	
 	while(i < NPROC) {
 		prptr = &proctab[i];
-		if(prptr->queue != readylist_service){
+		if(prptr->queue == readylist_med || prptr->queue == readylist_low){
+			//sync_printf("p%d - ctxsw: %d, allot: %d\n", i, prptr->num_ctxsw, prptr->timeallotment);
 			if(prptr->prstate == PR_READY) {
 				getitem(i);
 				insert(i, readylist_high, prptr->prprio);
 			}
 			prptr->queue = readylist_high;
 		}
+		prptr->timeallotment = 0;
 		i++;
 	}
 	//print_ready_list();
+	//preempt = QUANTUM;
 	return;
 }

@@ -60,9 +60,10 @@ pid32	create(
 	prptr->prdesc[2] = CONSOLE;
 	prptr->arrivaltime = (clktime*1000) + ctr1000;
 	prptr->queue = readylist_service;
-#if DISPLAY_ARRIVAL_CURR_TIME
+	prptr->used = TRUE;
+	#if DISPLAY_ARRIVAL_CURR_TIME
 	printf("Time of process %d creation: %d\n", pid, ((clktime*1000) + ctr1000));
-#endif
+	#endif
 
 	/* Initialize stack as if the process was called		*/
 
@@ -185,9 +186,10 @@ pid32	create_user_process(
 	prptr->prdesc[2] = CONSOLE;
 	prptr->arrivaltime = (clktime*1000) + ctr1000;
 	prptr->queue = readylist_high;
-#if DISPLAY_ARRIVAL_CURR_TIME
+	prptr->used = TRUE;
+	#if DISPLAY_ARRIVAL_CURR_TIME
 	printf("Time of process %d creation: %d\n", pid, ((clktime*1000) + ctr1000));
-#endif
+	#endif
 
 	/* Initialize stack as if the process was called		*/
 

@@ -47,7 +47,11 @@ void	clkhandler()
 	/* Decrement the preemption counter, and reschedule when the */
 	/*   remaining time reaches zero			     */
 	if((--preempt) <= 0) {
+		quantum_counter++;
 		preempt = QUANTUM;
 		resched();
+		if(quantum_counter == 4) {
+			quantum_counter = 0;
+		}
 	}
 }
