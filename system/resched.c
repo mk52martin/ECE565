@@ -41,19 +41,26 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 
 	if(!check_empty(readylist_service)) {
 		currpid = dequeue(readylist_service);
-		preempt = QUANTUM;
 	} else if (!check_empty(readylist_high)) {
 		currpid = dequeue(readylist_high);
-		preempt = QUANTUM;
 	} else if (!check_empty(readylist_med)) {
-		currpid = dequeue(readylist_med);
-		preempt = QUANTUM * 2;
+		if (!(quantum_counter % 2)) {
+			currpid = dequeue(readylist_med);
+		} else if (ptold->prstate == PR_CURR) {
+			getitem(currpid);
+		} else {
+			currpid = 0;
+		}
 	} else if (!check_empty(readylist_low)) {
-		currpid = dequeue(readylist_low);
-		preempt = QUANTUM * 4;
+		if (!(quantum_counter % 2)) {
+			currpid = dequeue(readylist_med);
+		} else if (ptold->prstate == PR_CURR) {
+			getitem(currpid);
+		} else {
+			currpid = 0;
+		}
 	} else {
 		currpid = 0;
-		preempt = QUANTUM * 4;
 	}
 	ptnew = &proctab[currpid];
 	ptnew->prstate = PR_CURR;
@@ -83,7 +90,9 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	#endif
 
 
-	ptnew->num_ctxsw++;		
+	ptnew->num_ctxsw++;	
+	quantum_counter = 0;
+	preempt = QUANTUM;	
 	#if DEBUG_CTXSW
 	sync_printf("ctxsw::%d-%d\n", ptold->pid, ptnew->pid);
 	#endif
