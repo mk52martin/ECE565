@@ -1,5 +1,5 @@
 /* resched.c - resched, resched_cntl */
-#define DEBUG_CTXSW 	1
+#define DEBUG_CTXSW 	0
 #define MLFQ			1
 #include <xinu.h>
 
@@ -84,7 +84,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 
 
 	ptnew->num_ctxsw++;		
-	#ifdef DEBUG_CTXSW
+	#if DEBUG_CTXSW
 	sync_printf("ctxsw::%d-%d\n", ptold->pid, ptnew->pid);
 	#endif
 	ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
@@ -193,7 +193,7 @@ void demote(pid32 pid) {
 	if(prptr->queue == readylist_service) {
 		return;
 	}
-	sync_printf("Demote %d.\n", pid);
+	//sync_printf("Demote %d.\n", pid);
 	if(prptr->queue == readylist_high) {
 		newq = readylist_med;
 	} else if (prptr->queue == readylist_med) {
