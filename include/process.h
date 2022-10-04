@@ -61,7 +61,7 @@ struct procent {		/* Entry in the process table		*/
 	bool8	user_process;	// process is user or system
 	qid16	queue;			// queue id that process is in
 	uint32	pid;			// pid for process
-	bool8	used;			// process used before (for shortening runtimes in loops)
+	//bool8	used;			// process used before (for shortening runtimes in loops)
 	int16	prdesc[NDESC];	/* Device descriptors for process	*/
 };
 

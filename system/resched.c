@@ -1,5 +1,5 @@
 /* resched.c - resched, resched_cntl */
-#define DEBUG_CTXSW 	0
+#define DEBUG_CTXSW 	1
 #define MLFQ			1
 #include <xinu.h>
 
@@ -31,6 +31,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	if(ptold->timeallotment > TIME_ALLOTMENT) {
 		demote(currpid);
 	}
+	
 	if (ptold->prstate == PR_CURR) {  /* Process remains eligible */
 		/* Old process will no longer remain current */
 		ptold->prstate = PR_READY;
@@ -43,12 +44,23 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	} else if (!check_empty(readylist_high)) {
 		currpid = dequeue(readylist_high);
 		//time = QUANTUM;
-	} else if (!check_empty(readylist_med) && !(quantum_counter % 2)) {
-		currpid = dequeue(readylist_med);
+	} else if (!check_empty(readylist_med)) {
+		if(!(quantum_counter %2)) {
+			currpid = dequeue(readylist_med);
+		} else if (ptold->prstate == PR_READY) {
+			getitem(currpid);
+		} else {
+			currpid = 0;
+		}
 		//time = QUANTUM * 2;
-	} else if (!check_empty(readylist_low) && !(quantum_counter % 4)) {
-		currpid = dequeue(readylist_low);
-		//time = QUANTUM * 4;
+	} else if (!check_empty(readylist_low)) {
+		if(!(quantum_counter %4)) {
+			currpid = dequeue(readylist_low);
+		} else if (ptold->prstate == PR_READY) {
+			getitem(currpid);
+		} else {
+			currpid = 0;
+		}
 	} else {
 		currpid = 0;
 		//time = QUANTUM;
@@ -205,22 +217,69 @@ void demote(pid32 pid) {
 }
 
 void boost_priority(void) {
-	int i = 4;
+	intmask mask;
 	struct	procent	*prptr;	
-	while(i < NPROC) {
-		prptr = &proctab[i];
-		if(prptr->queue == readylist_med || prptr->queue == readylist_low){
-			//sync_printf("p%d - ctxsw: %d, allot: %d\n", i, prptr->num_ctxsw, prptr->timeallotment);
-			if(prptr->prstate == PR_READY) {
-				getitem(i);
-				insert(i, readylist_high, prptr->prprio);
-			}
-			prptr->queue = readylist_high;
+	mask = disable();
+	kprintf("BOOST\n");
+	qid16 tail = queuetail(readylist_med);												//find head
+	qid16 it = firstid(readylist_med);	
+	if(it != tail) {	 // it med q not empty			
+		while(queuetab[it].qnext != tail) {												// cycle through readylist
+			prptr = &proctab[it];
+			prptr->timeallotment = 0;
+			getitem(it);
+			insert(it, readylist_high, prptr->prprio);
+			it = queuetab[it].qnext;
 		}
-		prptr->timeallotment = 0;
-		i++;
+		prptr = &proctab[it];
+		getitem(it);
+		insert(it, readylist_high, prptr->prprio);
+		kprintf("med q boosted\n");
 	}
+	tail = queuetail(readylist_low);												//find head
+	it = firstid(readylist_low);	
+	if(it != tail) {	 // it med q not empty			
+		while(queuetab[it].qnext != tail) {												// cycle through readylist
+			prptr = &proctab[it];
+			prptr->timeallotment = 0;
+			getitem(it);
+			insert(it, readylist_high, prptr->prprio);
+			it = queuetab[it].qnext;
+		}
+		prptr = &proctab[it];
+		prptr->timeallotment = 0;
+		getitem(it);
+		insert(it, readylist_high, prptr->prprio);
+		kprintf("low q boosted\n");
+	}
+
+	prptr = &proctab[currpid];
+	if(prptr->queue != readylist_service && currpid != 0) {
+		prptr->queue = readylist_high;
+		prptr->timeallotment = 0;
+	}
+	quantum_counter = 0;
+	//print_ready_list();
+
+	// int i = 4;
+	// struct	procent	*prptr;	
+	// while(i < NPROC) {
+	// 	prptr = &proctab[i];
+	// 	if(prptr->queue == readylist_med || prptr->queue == readylist_low){
+	// 		//sync_printf("p%d - ctxsw: %d, allot: %d\n", i, prptr->num_ctxsw, prptr->timeallotment);
+	// 		if(prptr->prstate == PR_READY) {
+	// 			getitem(i);
+	// 			insert(i, readylist_high, prptr->prprio);
+	// 		}
+	// 		prptr->queue = readylist_high;
+	// 	}
+	// 	prptr->timeallotment = 0;
+	// 	i++;
+	// }
+
+
 	//print_ready_list();
 	//preempt = QUANTUM;
+	restore(mask);
 	return;
 }
