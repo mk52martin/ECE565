@@ -80,10 +80,10 @@ int main() {
 
         sleepms(50); // wait for user processes to terminate    
 
-        kprintf("process %d:: name=%s, runtime=%d, turnaround time=%d, ctx=%d\n",prA, proctab[prA].prname, proctab[prA].runtime, proctab[prA].turnaroundtime, proctab[prA].num_ctxsw);
-        kprintf("process %d:: name=%s, runtime=%d, turnaround time=%d, ctx=%d\n",prB, proctab[prB].prname, proctab[prB].runtime, proctab[prB].turnaroundtime, proctab[prB].num_ctxsw);
-        kprintf("process %d:: name=%s, runtime=%d, turnaround time=%d, ctx=%d\n",prC, proctab[prC].prname, proctab[prC].runtime, proctab[prC].turnaroundtime, proctab[prC].num_ctxsw);
-        kprintf("process %d:: name=%s, runtime=%d, turnaround time=%d, ctx=%d\n",prD, proctab[prD].prname, proctab[prD].runtime, proctab[prD].turnaroundtime, proctab[prD].num_ctxsw);
+        sync_printf("process %d:: name=%s, runtime=%d, turnaround time=%d, ctx=%d\n",prA, proctab[prA].prname, proctab[prA].runtime, proctab[prA].turnaroundtime, proctab[prA].num_ctxsw);
+        sync_printf("process %d:: name=%s, runtime=%d, turnaround time=%d, ctx=%d\n",prB, proctab[prB].prname, proctab[prB].runtime, proctab[prB].turnaroundtime, proctab[prB].num_ctxsw);
+        sync_printf("process %d:: name=%s, runtime=%d, turnaround time=%d, ctx=%d\n",prC, proctab[prC].prname, proctab[prC].runtime, proctab[prC].turnaroundtime, proctab[prC].num_ctxsw);
+        sync_printf("process %d:: name=%s, runtime=%d, turnaround time=%d, ctx=%d\n",prD, proctab[prD].prname, proctab[prD].runtime, proctab[prD].turnaroundtime, proctab[prD].num_ctxsw);
 
         kprintf("==================================================================\n\n");
 

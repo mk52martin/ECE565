@@ -1,5 +1,5 @@
 /* resched.c - resched, resched_cntl */
-#define DEBUG_CTXSW 	1
+#define DEBUG_CTXSW 	0
 #define MLFQ			1
 #include <xinu.h>
 
@@ -13,6 +13,11 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 {
 	struct procent *ptold;	/* Ptr to table entry for old process	*/
 	struct procent *ptnew;	/* Ptr to table entry for new process	*/
+	if(proctab[currpid].prstate != PR_CURR) {
+		preempt = QUANTUM;
+		quantum_counter = 0;
+	}
+	//sync_printf("%d\n", quantum_counter);
 
 	/* If rescheduling is deferred, record attempt and return */
 
@@ -32,37 +37,50 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	if (ptold->prstate == PR_CURR) {  /* Process remains eligible */
 		/* Old process will no longer remain current */
 		ptold->prstate = PR_READY;
-		insert(currpid, ptold->queue, ptold->prprio);
+		if(currpid != 0){
+			insert(currpid, ptold->queue, ptold->prprio);
+		}
 	}
 	//sync_printf("currpid = %d, status: %d, ptqueue = %d\n", currpid, ptold->prstate, ptold->queue);
 	// if(currpid == 4 || currpid == 5 || currpid == 6){
 	// 	print_ready_list();
 	// }
 
+	//print_ready_list();
+	//sync_printf("currpid: %d, State: %d\n", currpid, ptold->prstate);
+
 	if(!check_empty(readylist_service)) {
 		currpid = dequeue(readylist_service);
 	} else if (!check_empty(readylist_high)) {
 		currpid = dequeue(readylist_high);
 	} else if (!check_empty(readylist_med)) {
-		if (!(quantum_counter % 2)) {
+		if (quantum_counter % 2 == 0) {
 			currpid = dequeue(readylist_med);
-			kprintf("M Current Time: %d\n", ((clktime*1000) + ctr1000));
+			//kprintf("M Current Time: %d\n", ((clktime*1000) + ctr1000));
+			//sync_printf("M SW\n");
 		} else if (ptold->prstate == PR_READY && currpid != 0) {
 			getitem(currpid);
+			//sync_printf("M Resume\n");
 		} else {
 			currpid = 0;
+			//sync_printf("M Null\n");
 		}
 	} else if (!check_empty(readylist_low)) {
-		if (!(quantum_counter % 4)) {
+		if (quantum_counter % 4 == 0) {
 			currpid = dequeue(readylist_low);
-			sync_printf("L Current Time: %d\n", ((clktime*1000) + ctr1000));
+			//sync_printf("L Current Time: %d\n", ((clktime*1000) + ctr1000));
+			//sync_printf("L SW\n");
 		} else if (ptold->prstate == PR_READY && currpid != 0) {
 			getitem(currpid);
+			//sync_printf("L Resume\n");
 		} else {
 			currpid = 0;
+			//sync_printf("L Null\n");
 		}
 	} else {
 		currpid = 0;
+		quantum_counter = 0;
+		//sync_printf("NULL\n");
 	}
 	ptnew = &proctab[currpid];
 	ptnew->prstate = PR_CURR;
@@ -190,7 +208,7 @@ bool8 check_empty(qid16 q) {
 	return FALSE;
 }
 
-void demote(pid32 pid) {
+qid16 demote(pid32 pid) {
 	qid16 newq;
 	struct	procent	*prptr;	
 	prptr = &proctab[pid];
@@ -199,10 +217,10 @@ void demote(pid32 pid) {
 		return;
 	}
 	if(prptr->queue == readylist_low) {
-		return;
+		return readylist_low;
 	}
 	if(prptr->queue == readylist_service) {
-		return;
+		return readylist_service;
 	}
 	//sync_printf("Demote %d.\n", pid);
 	if(prptr->queue == readylist_high) {
@@ -213,10 +231,13 @@ void demote(pid32 pid) {
 	prptr->queue = newq;
 	//getitem(pid);
 	//insert(pid, newq, prptr->prprio);
-	return;
+	return newq;
 }
 
 void boost_priority(void) {
+	intmask mask;
+	mask = disable();
+
 	int i = 0;
 	struct	procent	*prptr;	
 	while(i < NPROC) {
@@ -227,9 +248,17 @@ void boost_priority(void) {
 				insert(i, readylist_high, prptr->prprio);
 			}
 			prptr->queue = readylist_high;
+			prptr->timeallotment = 0;
 		}
 		i++;
 	}
+
+	// prptr = &proctab[currpid];
+	// if(prptr->queue != readylist_service){
+	// 	prptr->queue = readylist_high;
+	// }
+	// prptr->timeallotment = 0;
 	//print_ready_list();
+	restore(mask);
 	return;
 }
