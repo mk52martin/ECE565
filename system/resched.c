@@ -1,5 +1,5 @@
 /* resched.c - resched, resched_cntl */
-#define DEBUG_CTXSW 	0
+#define DEBUG_CTXSW 	1
 #define MLFQ			1
 #include <xinu.h>
 
@@ -46,15 +46,17 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	} else if (!check_empty(readylist_med)) {
 		if (!(quantum_counter % 2)) {
 			currpid = dequeue(readylist_med);
-		} else if (ptold->prstate == PR_CURR) {
+			kprintf("M Current Time: %d\n", ((clktime*1000) + ctr1000));
+		} else if (ptold->prstate == PR_READY && currpid != 0) {
 			getitem(currpid);
 		} else {
 			currpid = 0;
 		}
 	} else if (!check_empty(readylist_low)) {
-		if (!(quantum_counter % 2)) {
-			currpid = dequeue(readylist_med);
-		} else if (ptold->prstate == PR_CURR) {
+		if (!(quantum_counter % 4)) {
+			currpid = dequeue(readylist_low);
+			sync_printf("L Current Time: %d\n", ((clktime*1000) + ctr1000));
+		} else if (ptold->prstate == PR_READY && currpid != 0) {
 			getitem(currpid);
 		} else {
 			currpid = 0;
