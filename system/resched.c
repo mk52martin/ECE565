@@ -49,6 +49,8 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	//print_ready_list();
 	//sync_printf("currpid: %d, State: %d\n", currpid, ptold->prstate);
 
+	
+	// try adding a var that tracks if a process has been updated instead of using else if
 	if(!check_empty(readylist_service)) {
 		currpid = dequeue(readylist_service);
 	} else if (!check_empty(readylist_high)) {
