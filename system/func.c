@@ -15,11 +15,10 @@ void sync_printf(char *fmt, ...)
 
 void burst_execution(uint32 number_bursts, uint32 burst_duration, uint32 sleep_duration) {
     uint32 i = 0;
-    uint32 counter;
-    uint32 end_time;
+    //uint32 counter;
     struct	procent	*prptr;
     prptr = &proctab[currpid];
-
+    uint32 end_time = prptr->runtime;
     #if DEBUG
     uint32 time = ((clktime*1000) + ctr1000);
     #endif
@@ -28,12 +27,9 @@ void burst_execution(uint32 number_bursts, uint32 burst_duration, uint32 sleep_d
         #if DEBUG
         sync_printf("new cycle for %d @%d, runtime: %d\n", currpid, ((clktime*1000) + ctr1000), prptr->runtime);
         #endif
-        counter = 0;
         //end_time = prptr->runtime + burst_duration - 1;
-        end_time = prptr->runtime + burst_duration;
-        while(prptr->runtime < end_time) {
-            counter++;
-        }
+        end_time += burst_duration;
+        while(prptr->runtime < end_time);
         #if DEBUG
         sync_printf("end burst cycle for p%d @ time: %d, @runtime: %d\n", currpid, ((clktime*1000) + ctr1000), prptr->runtime);
         #endif
