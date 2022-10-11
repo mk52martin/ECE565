@@ -25,7 +25,9 @@ void	clkhandler()
 	ctr1000 = 1000 - count1000;
 	struct	procent	*prptr = &proctab[currpid];
 	prptr->runtime++;
-	prptr->timeallotment++;
+	if(prptr->prstate == PR_CURR){
+		prptr->timeallotment++;
+	}
 	/* Handle sleeping processes if any exist */
 
 	if(!isempty(sleepq)) {
@@ -40,7 +42,9 @@ void	clkhandler()
 
 
 	if((++boost) >= PRIORITY_BOOST_PERIOD) {
-		//sync_printf("BOOST!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+		// sync_printf("BOOST!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+		// kprintf("Current Time: %d\n", ((clktime*1000) + ctr1000));
+		boost = 0;
 		boost_priority();
 		boost = 0;
 	}

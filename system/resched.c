@@ -1,6 +1,7 @@
 /* resched.c - resched, resched_cntl */
 #define DEBUG_CTXSW 	0
 #define MLFQ			1
+#define PRINT_READYLIST_SERVICE 	0
 #include <xinu.h>
 
 struct	defer	Defer;
@@ -16,7 +17,11 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	if(proctab[currpid].prstate != PR_CURR) {
 		preempt = QUANTUM;
 		quantum_counter = 0;
-	}
+		// sync_printf("currpid: %d\n", currpid);
+		// print_ready_list();
+		// sync_printf("Sleep: ");
+		// print_queue(sleepq);
+	} 
 	//sync_printf("%d\n", quantum_counter);
 
 	/* If rescheduling is deferred, record attempt and return */
@@ -83,15 +88,16 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		}
 	}
 	if(!new_p) {
-		//sync_printf("NULL, currpid=%d, quantum_c: %d\n", currpid, quantum_counter);
-		//print_ready_list();
+		// sync_printf("NULL, currpid=%d, quantum_c: %d\n", currpid, quantum_counter);
+		// print_ready_list();
 		currpid = 0;
-		//quantum_counter = -1;
+		quantum_counter = -1;
 	}
 	ptnew = &proctab[currpid];
 	ptnew->prstate = PR_CURR;
 	
 	if(ptnew == ptold) {
+		preempt = QUANTUM;
 		return;
 	}
 	#endif
@@ -171,8 +177,10 @@ syscall print_ready_list() {
 	intmask mask;
 	mask = disable();
 	
+	#if PRINT_READYLIST_SERVICE	
 	sync_printf("List of ready processes from readylist_service:\n");						
 	print_queue(readylist_service);
+	#endif
 
 	sync_printf("List of ready processes from readylist_high:\n");						
 	print_queue(readylist_high);
@@ -235,14 +243,15 @@ qid16 demote(pid32 pid) {
 		newq = readylist_low;
 	}
 	prptr->queue = newq;
+	quantum_counter = 0;
 	//getitem(pid);
 	//insert(pid, newq, prptr->prprio);
 	return newq;
 }
 
 void boost_priority(void) {
-	intmask mask;
-	mask = disable();
+	// intmask mask;
+	// mask = disable();
 
 	int i = 0;
 	struct	procent	*prptr;	
@@ -254,8 +263,8 @@ void boost_priority(void) {
 				insert(i, readylist_high, prptr->prprio);
 			}
 			prptr->queue = readylist_high;
-			prptr->timeallotment = 0;
 		}
+		prptr->timeallotment = 0;
 		i++;
 	}
 
@@ -265,6 +274,9 @@ void boost_priority(void) {
 	// }
 	// prptr->timeallotment = 0;
 	//print_ready_list();
-	restore(mask);
+	preempt = QUANTUM;
+	quantum_counter = 0;
+	// restore(mask);
+	//resched();
 	return;
 }
