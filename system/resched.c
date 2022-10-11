@@ -14,13 +14,12 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 {
 	struct procent *ptold;	/* Ptr to table entry for old process	*/
 	struct procent *ptnew;	/* Ptr to table entry for new process	*/
-	if(proctab[currpid].prstate != PR_CURR) {
+	if(preempt != QUANTUM && proctab[currpid].prstate == PR_CURR) {
+		quantum_counter = -1;
+		return;
+	} else if(proctab[currpid].prstate != PR_CURR) {
 		preempt = QUANTUM;
 		quantum_counter = 0;
-		// sync_printf("currpid: %d\n", currpid);
-		// print_ready_list();
-		// sync_printf("Sleep: ");
-		// print_queue(sleepq);
 	} 
 	//sync_printf("%d\n", quantum_counter);
 
@@ -36,7 +35,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	ptold = &proctab[currpid];
 
 	#if MLFQ
-	if(ptold->timeallotment > TIME_ALLOTMENT) {
+	if(ptold->timeallotment >= TIME_ALLOTMENT) {
 		demote(currpid);
 	}
 	if (ptold->prstate == PR_CURR) {  /* Process remains eligible */
@@ -231,6 +230,7 @@ qid16 demote(pid32 pid) {
 		return;
 	}
 	if(prptr->queue == readylist_low) {
+		sync_printf("No demote %d, ctxsw: %d.\n", pid, prptr->num_ctxsw);
 		return readylist_low;
 	}
 	if(prptr->queue == readylist_service) {
@@ -239,8 +239,10 @@ qid16 demote(pid32 pid) {
 	//sync_printf("Demote %d.\n", pid);
 	if(prptr->queue == readylist_high) {
 		newq = readylist_med;
+		sync_printf("Demote from high %d, ctxsw: %d.\n", pid, prptr->num_ctxsw);
 	} else if (prptr->queue == readylist_med) {
 		newq = readylist_low;
+		sync_printf("Demote from med %d, ctxsw: %d.\n", pid, prptr->num_ctxsw);
 	}
 	prptr->queue = newq;
 	quantum_counter = 0;
