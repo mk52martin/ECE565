@@ -12,6 +12,7 @@ void	wakeup(void)
 
 	resched_cntl(DEFER_START);
 	while (nonempty(sleepq) && (firstkey(sleepq) <= 0)) {
+		//sync_printf("p%d wake\n", firstid(sleepq));
 		ready(dequeue(sleepq));
 	}
 

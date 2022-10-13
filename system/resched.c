@@ -1,10 +1,11 @@
 /* resched.c - resched, resched_cntl */
-#define DEBUG_CTXSW 	0
+#define DEBUG_CTXSW 	1
 #define MLFQ			1
 #define PRINT_READYLIST_SERVICE 	0
 #include <xinu.h>
 
 struct	defer	Defer;
+bool8	sync_call = FALSE;
 
 /*------------------------------------------------------------------------
  *  resched  -  Reschedule processor to highest priority eligible process
@@ -17,6 +18,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 
 	struct procent *ptold;	/* Ptr to table entry for old process	*/
 	struct procent *ptnew;	/* Ptr to table entry for new process	*/
+	sync_call = TRUE;
 	if(preempt != QUANTUM ) {
 		// if(proctab[currpid].prstate != PR_CURR){
 		// 	preempt = QUANTUM;
@@ -25,6 +27,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		// 	enqueue(currpid, proctab[currpid].queue);
 		// }
 		quantum_counter = 0;
+		sync_call = FALSE;
 	} 
 	// sync_printf("Currpid: %d, state: %d, rt: %d, ta:%d\n", currpid, proctab[currpid].prstate, proctab[currpid].runtime, proctab[currpid].timeallotment);
 	// sync_printf("Current Time: %d\n", ((clktime*1000) + ctr1000));
@@ -252,16 +255,18 @@ qid16 demote(pid32 pid) {
 	qid16 newq;
 	struct	procent	*prptr;	
 	prptr = &proctab[pid];
-	prptr->timeallotment = 0;
 	if(pid == 0) {
+		prptr->timeallotment = 0;
 		return;
 	}
 	if(prptr->queue == readylist_low) {
 		//sync_printf("No demote %d, ctxsw: %d.\n", pid, prptr->num_ctxsw);
 		//sync_printf("No demote %d, ctxsw: %d, runtime: %d, cur time: %d.\n", pid, prptr->num_ctxsw, prptr->runtime, ((clktime*1000) + ctr1000));
+		prptr->timeallotment = 0;
 		return readylist_low;
 	}
 	if(prptr->queue == readylist_service) {
+		prptr->timeallotment = 0;
 		return readylist_service;
 	}
 	//sync_printf("Demote %d.\n", pid);
@@ -269,14 +274,16 @@ qid16 demote(pid32 pid) {
 		newq = readylist_med;
 		//sync_printf("Demote from high %d, ctxsw: %d, runtime: %d, cur time: %d.\n", pid, prptr->num_ctxsw, prptr->runtime, ((clktime*1000) + ctr1000));
 	} else if (prptr->queue == readylist_med) {
-		// if(quantum_counter % 2 == 0){
-		// 	newq = readylist_low;
-		// 	sync_printf("Demote from med %d, ctxsw: %d, runtime: %d, cur time: %d.\n", pid, prptr->num_ctxsw, prptr->runtime, ((clktime*1000) + ctr1000));
-		// } else {
-		// 	return readylist_med;
-		// }
-		newq = readylist_low;
+		if((!sync_call) || ((quantum_counter % 2) == 0)){
+			newq = readylist_low;
+			sync_printf("Demote from med %d, ctxsw: %d, ta: %d, pre: %d, qc: %d, sc: %d.\n", pid, prptr->num_ctxsw, prptr->timeallotment, preempt, quantum_counter, sync_call);
+		} else {
+			sync_printf("No demote from med %d, ctxsw: %d, ta: %d, pre: %d, qc: %d, sc %d.\n", pid, prptr->num_ctxsw, prptr->timeallotment, preempt, quantum_counter, sync_call);
+			return readylist_med;
+		}
+		//newq = readylist_low;
 	}
+	prptr->timeallotment = 0;
 	prptr->queue = newq;
 	quantum_counter = 0;
 	//getitem(pid);
