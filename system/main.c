@@ -14,6 +14,7 @@ int main() {
 	
 	kprintf("=== TESTCASE 1::  CPU-intensive jobs =============================\n");
 
+        //kprintf("nullrt: %d\n", proctab[currpid].runtime);
 	prA = create_user_process(timed_execution, 1024, "cpu_1000", 1, 1000);
 	prB = create_user_process(timed_execution, 1024, "cpu_1000", 1, 1000);
 
@@ -22,6 +23,8 @@ int main() {
 
 	receive();	
 	receive();	
+
+        //kprintf("nullrt: %d\n", proctab[currpid].runtime);
 
 	sleepms(50); // wait for user processes to terminate	
 
@@ -36,7 +39,8 @@ int main() {
         prB = create_user_process(timed_execution, 1024, "cpu_1000", 1, 1000);
         prC = create_user_process(timed_execution, 1024, "cpu_1000_new", 1, 1000);
         prD = create_user_process(timed_execution, 1024, "cpu_1000_del", 1, 1000);
-
+        proctab[0].runtime = 0;
+        //kprintf("nullrt: %d\n", proctab[0].runtime);
         resume(prA);
         resume(prB);
         
@@ -51,7 +55,7 @@ int main() {
 
         receive();
         receive();
-
+        //kprintf("nullrt: %d\n", proctab[0].runtime);
         sleepms(50); // wait for user processes to terminate    
 
         kprintf("process %d:: name=%s, runtime=%d, turnaround time=%d, ctx=%d\n",prA, proctab[prA].prname, proctab[prA].runtime, proctab[prA].turnaroundtime, proctab[prA].num_ctxsw);
@@ -67,7 +71,8 @@ int main() {
         prB = create_user_process(burst_execution, 1024, "burst_100/5/5", 3, 100, 5, 5);
         prC = create_user_process(burst_execution, 1024, "burst_100/5/5", 3, 100, 5, 5);
         prD = create_user_process(burst_execution, 1024, "burst_100/5/5", 3, 100, 5, 5);
-
+        proctab[0].runtime = 0;
+        //kprintf("nullrt: %d\n", proctab[0].runtime);
         resume(prA);
         resume(prB);
         resume(prC);
@@ -77,7 +82,7 @@ int main() {
         receive();
         receive();
         receive();
-
+        //kprintf("nullrt: %d\n", proctab[0].runtime);
         sleepms(50); // wait for user processes to terminate    
 
         sync_printf("process %d:: name=%s, runtime=%d, turnaround time=%d, ctx=%d\n",prA, proctab[prA].prname, proctab[prA].runtime, proctab[prA].turnaroundtime, proctab[prA].num_ctxsw);
@@ -93,7 +98,8 @@ int main() {
         prB = create_user_process(timed_execution, 1024, "cpu_1000", 1, 1000);
         prC = create_user_process(burst_execution, 1024, "burst_100/5/5", 3, 100, 5, 5);
         prD = create_user_process(burst_execution, 1024, "burst_100/5/5", 3, 100, 5, 5);
-
+        proctab[0].runtime = 0;
+        //kprintf("nullrt: %d\n", proctab[0].runtime);
         resume(prA);
         resume(prB);
         resume(prC);
@@ -103,7 +109,7 @@ int main() {
         receive();
         receive();
         receive();
-
+        //kprintf("nullrt: %d\n", proctab[0].runtime);
         sleepms(50); // wait for user processes to terminate    
 
         kprintf("process %d:: name=%s, runtime=%d, turnaround time=%d, ctx=%d\n",prA, proctab[prA].prname, proctab[prA].runtime, proctab[prA].turnaroundtime, proctab[prA].num_ctxsw);
@@ -119,7 +125,8 @@ int main() {
         prB = create_user_process(timed_execution, 1024, "cpu_1000", 1, 1000);
         prC = create_user_process(burst_execution, 1024, "burst_100/2/8", 3, 100, 2, 8);
         prD = create_user_process(burst_execution, 1024, "burst_100/2/8", 3, 100, 2, 8);
-
+        proctab[0].runtime = 0;
+        //kprintf("nullrt: %d\n", proctab[0].runtime);
         resume(prA);
         resume(prB);
         resume(prC);
@@ -129,7 +136,7 @@ int main() {
         receive();
         receive();
         receive();
-
+        //kprintf("nullrt: %d\n", proctab[0].runtime);
         sleepms(50); // wait for user processes to terminate    
 
         kprintf("process %d:: name=%s, runtime=%d, turnaround time=%d, ctx=%d\n",prA, proctab[prA].prname, proctab[prA].runtime, proctab[prA].turnaroundtime, proctab[prA].num_ctxsw);
@@ -145,7 +152,8 @@ int main() {
         prB = create_user_process(burst_execution, 1024, "burst_100/1/9", 3, 100, 1, 9);
         prC = create_user_process(burst_execution, 1024, "burst_100/5/5", 3, 100, 5, 5);
         prD = create_user_process(burst_execution, 1024, "burst_20/40/10", 3, 20, 40, 10);
-
+        proctab[0].runtime = 0;
+        //kprintf("nullrt: %d\n", proctab[0].runtime);
         resume(prA);
         resume(prB);
         resume(prC);
@@ -155,7 +163,7 @@ int main() {
         receive();
         receive();
         receive();
-
+        //kprintf("nullrt: %d\n", proctab[0].runtime);
         sleepms(50); // wait for user processes to terminate    
 
         kprintf("process %d:: name=%s, runtime=%d, turnaround time=%d, ctx=%d\n",prA, proctab[prA].prname, proctab[prA].runtime, proctab[prA].turnaroundtime, proctab[prA].num_ctxsw);

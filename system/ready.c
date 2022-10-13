@@ -28,7 +28,9 @@ status	ready(
 	//print_ready_list();
 	insert(pid, prptr->queue, prptr->prprio);
 	//print_ready_list();
-	resched();
+	if(currpid == 0 || prptr->queue == readylist_high || prptr->queue == readylist_med){
+		resched();
+	}
 
 	return OK;
 }

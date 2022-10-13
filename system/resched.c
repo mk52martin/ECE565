@@ -12,16 +12,25 @@ struct	defer	Defer;
  */
 void	resched(void)		/* Assumes interrupts are disabled	*/
 {
+	intmask mask;
+	mask = disable();
+
 	struct procent *ptold;	/* Ptr to table entry for old process	*/
 	struct procent *ptnew;	/* Ptr to table entry for new process	*/
-	if(preempt != QUANTUM && proctab[currpid].prstate == PR_CURR) {
-		quantum_counter = -1;
-		return;
-	} else if(proctab[currpid].prstate != PR_CURR) {
-		preempt = QUANTUM;
+	if(preempt != QUANTUM ) {
+		if(proctab[currpid].prstate != PR_CURR){
+			preempt = QUANTUM;
+		} else if (currpid != 0){
+			proctab[currpid].prstate = PR_READY;
+			enqueue(currpid, proctab[currpid].queue);
+		}
 		quantum_counter = 0;
 	} 
-	//sync_printf("%d\n", quantum_counter);
+	// sync_printf("Currpid: %d, state: %d, rt: %d, ta:%d\n", currpid, proctab[currpid].prstate, proctab[currpid].runtime, proctab[currpid].timeallotment);
+	// sync_printf("Current Time: %d\n", ((clktime*1000) + ctr1000));
+	// print_ready_list();
+	// sync_printf("sleepq: ");
+	// print_queue(sleepq);
 
 	/* If rescheduling is deferred, record attempt and return */
 
@@ -44,6 +53,8 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		if(currpid != 0){
 			insert(currpid, ptold->queue, ptold->prprio);
 		}
+	} else {
+		quantum_counter = 0;				// takes  values down A LOT (mlfq1 tc3 -> ctx ~130, rt ~ 1900)
 	}
 	//sync_printf("currpid = %d, status: %d, ptqueue = %d\n", currpid, ptold->prstate, ptold->queue);
 	// if(currpid == 4 || currpid == 5 || currpid == 6){
@@ -87,8 +98,15 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		}
 	}
 	if(!new_p) {
-		// sync_printf("NULL, currpid=%d, quantum_c: %d\n", currpid, quantum_counter);
+		//sync_printf("NULL, currpid=%d, quantum_c: %d, state: %d\n", currpid, quantum_counter, ptold->prstate);
 		// print_ready_list();
+		// sync_printf("sleepq: ");
+		// print_queue(sleepq);
+		// if(currpid != 0) {
+		// 	sync_printf("NULL, currpid=%d, quantum_c: %d, state: %d\n", currpid, quantum_counter, ptold->prstate);
+		// 	print_ready_list();
+		// 	print_queue(sleepq);
+		// }
 		currpid = 0;
 		quantum_counter = -1;
 	}
@@ -127,6 +145,9 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	#if DEBUG_CTXSW
 	sync_printf("ctxsw::%d-%d\n", ptold->pid, ptnew->pid);
 	#endif
+
+	restore(mask);
+
 	ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
 	
 	/* Old process returns here when resumed */
@@ -230,7 +251,8 @@ qid16 demote(pid32 pid) {
 		return;
 	}
 	if(prptr->queue == readylist_low) {
-		sync_printf("No demote %d, ctxsw: %d.\n", pid, prptr->num_ctxsw);
+		// sync_printf("No demote %d, ctxsw: %d.\n", pid, prptr->num_ctxsw);
+		//sync_printf("No demote %d, ctxsw: %d, runtime: %d, cur time: %d.\n", pid, prptr->num_ctxsw, prptr->runtime, ((clktime*1000) + ctr1000));
 		return readylist_low;
 	}
 	if(prptr->queue == readylist_service) {
@@ -239,10 +261,10 @@ qid16 demote(pid32 pid) {
 	//sync_printf("Demote %d.\n", pid);
 	if(prptr->queue == readylist_high) {
 		newq = readylist_med;
-		sync_printf("Demote from high %d, ctxsw: %d.\n", pid, prptr->num_ctxsw);
+		//sync_printf("Demote from high %d, ctxsw: %d, runtime: %d, cur time: %d.\n", pid, prptr->num_ctxsw, prptr->runtime, ((clktime*1000) + ctr1000));
 	} else if (prptr->queue == readylist_med) {
 		newq = readylist_low;
-		sync_printf("Demote from med %d, ctxsw: %d.\n", pid, prptr->num_ctxsw);
+		//sync_printf("Demote from med %d, ctxsw: %d, runtime: %d, cur time: %d.\n", pid, prptr->num_ctxsw, prptr->runtime, ((clktime*1000) + ctr1000));
 	}
 	prptr->queue = newq;
 	quantum_counter = 0;
@@ -255,27 +277,43 @@ void boost_priority(void) {
 	// intmask mask;
 	// mask = disable();
 
+	qid16 tail = queuetail(readylist_med);												//find head
+	qid16 it = firstid(readylist_med);	
+	qid16 next;
+			
+	while(it != tail) {												// cycle through readylist
+		next = queuetab[it].qnext;
+		getitem(it);
+		insert(it, readylist_high, proctab[it].prprio);
+		it = next;	
+	}
+	
+
+	tail = queuetail(readylist_low);												//find head
+	it = firstid(readylist_low);	
+
+	while(it != tail) {												// cycle through readylist
+		next = queuetab[it].qnext;
+		getitem(it);
+		insert(it, readylist_high, proctab[it].prprio);
+		it = next;		
+	}
+
 	int i = 0;
 	struct	procent	*prptr;	
 	while(i < NPROC) {
 		prptr = &proctab[i];
 		if(prptr->queue != readylist_service){
-			if(prptr->prstate == PR_READY) {
-				getitem(i);
-				insert(i, readylist_high, prptr->prprio);
-			}
+			// if(prptr->prstate == PR_READY) {
+			// 	getitem(i);
+			// 	insert(i, readylist_high, prptr->prprio);
+			// }
 			prptr->queue = readylist_high;
 		}
 		prptr->timeallotment = 0;
 		i++;
 	}
 
-	// prptr = &proctab[currpid];
-	// if(prptr->queue != readylist_service){
-	// 	prptr->queue = readylist_high;
-	// }
-	// prptr->timeallotment = 0;
-	//print_ready_list();
 	preempt = QUANTUM;
 	quantum_counter = 0;
 	// restore(mask);
