@@ -18,12 +18,12 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	struct procent *ptold;	/* Ptr to table entry for old process	*/
 	struct procent *ptnew;	/* Ptr to table entry for new process	*/
 	if(preempt != QUANTUM ) {
-		if(proctab[currpid].prstate != PR_CURR){
-			preempt = QUANTUM;
-		} else if (currpid != 0){
-			proctab[currpid].prstate = PR_READY;
-			enqueue(currpid, proctab[currpid].queue);
-		}
+		// if(proctab[currpid].prstate != PR_CURR){
+		// 	preempt = QUANTUM;
+		// } else if (currpid != 0){
+		// 	proctab[currpid].prstate = PR_READY;
+		// 	enqueue(currpid, proctab[currpid].queue);
+		// }
 		quantum_counter = 0;
 	} 
 	// sync_printf("Currpid: %d, state: %d, rt: %d, ta:%d\n", currpid, proctab[currpid].prstate, proctab[currpid].runtime, proctab[currpid].timeallotment);
@@ -52,6 +52,8 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		ptold->prstate = PR_READY;
 		if(currpid != 0){
 			insert(currpid, ptold->queue, ptold->prprio);
+		} else {
+			quantum_counter = 0;				// takes  values down A LOT (mlfq1 tc3 -> ctx ~130, rt ~ 1900)
 		}
 	} else {
 		quantum_counter = 0;				// takes  values down A LOT (mlfq1 tc3 -> ctx ~130, rt ~ 1900)
@@ -138,9 +140,9 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	preempt = QUANTUM;		/* Reset time slice for process	*/
 	#endif
 
-
+	//sync_printf("q counter: %d, q: %d->%d ", quantum_counter, ptold->queue, ptnew->queue);
 	ptnew->num_ctxsw++;	
-	//quantum_counter = 0;
+	quantum_counter = 0;
 	preempt = QUANTUM;	
 	#if DEBUG_CTXSW
 	sync_printf("ctxsw::%d-%d\n", ptold->pid, ptnew->pid);
@@ -251,7 +253,7 @@ qid16 demote(pid32 pid) {
 		return;
 	}
 	if(prptr->queue == readylist_low) {
-		// sync_printf("No demote %d, ctxsw: %d.\n", pid, prptr->num_ctxsw);
+		//sync_printf("No demote %d, ctxsw: %d.\n", pid, prptr->num_ctxsw);
 		//sync_printf("No demote %d, ctxsw: %d, runtime: %d, cur time: %d.\n", pid, prptr->num_ctxsw, prptr->runtime, ((clktime*1000) + ctr1000));
 		return readylist_low;
 	}
@@ -274,9 +276,9 @@ qid16 demote(pid32 pid) {
 }
 
 void boost_priority(void) {
-	// intmask mask;
-	// mask = disable();
-
+	intmask mask;
+	mask = disable();
+	
 	qid16 tail = queuetail(readylist_med);												//find head
 	qid16 it = firstid(readylist_med);	
 	qid16 next;
@@ -299,6 +301,11 @@ void boost_priority(void) {
 		it = next;		
 	}
 
+	// if(proctab[currpid].queue != readylist_service && proctab[currpid].prstate == PR_CURR){
+	// 	proctab[currpid].prstate = PR_READY;
+	// 	enqueue(currpid, readylist_high);
+	// }
+
 	int i = 0;
 	struct	procent	*prptr;	
 	while(i < NPROC) {
@@ -316,7 +323,8 @@ void boost_priority(void) {
 
 	preempt = QUANTUM;
 	quantum_counter = 0;
-	// restore(mask);
-	//resched();
+	// resched();
+	//reenable interrupts
+	restore(mask);
 	return;
 }
