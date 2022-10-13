@@ -48,7 +48,6 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	if(boost >= PRIORITY_BOOST_PERIOD) {
 		//sync_printf("Current Time: %d\n", ((clktime*1000) + ctr1000));
 		boost_priority();
-		boost = 0;
 	}
 	#if MLFQ
 	if(ptold->timeallotment >= TIME_ALLOTMENT) {
@@ -85,7 +84,13 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		new_p = 1;
 	} 
 	if (!new_p && !check_empty(readylist_med)) {
-		if (quantum_counter % 2 == 0) {
+		if(sync_call && (quantum_counter % 2) != 0) {
+			getitem(currpid);
+		} else {
+			currpid = dequeue(readylist_med);
+		}
+		new_p = 1;
+		/*if ((!sync_call) || ((quantum_counter % 2) == 0)) {
 			currpid = dequeue(readylist_med);
 			new_p = 1;
 			//kprintf("M Current Time: %d\n", ((clktime*1000) + ctr1000));
@@ -93,10 +98,17 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		} else if (ptold->prstate == PR_READY) {
 			getitem(currpid);
 			new_p = 1;
-		}
+		}*/
 	} 
 	if (!new_p && !check_empty(readylist_low)) {
-		if (quantum_counter % 4 == 0) {
+		if(sync_call && (quantum_counter % 4) != 0) {
+			getitem(currpid);
+		} else {
+			currpid = dequeue(readylist_low);
+		}
+		new_p = 1;
+		
+		/*if ((!sync_call) || ((quantum_counter % 4) == 0)) {
 			currpid = dequeue(readylist_low);
 			//sync_printf("L Current Time: %d\n", ((clktime*1000) + ctr1000));
 			//sync_printf("L SW\n");
@@ -104,7 +116,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		} else if (ptold->prstate == PR_READY) {
 			getitem(currpid);
 			new_p = 1;
-		}
+		}*/
 	}
 	if(!new_p) {
 		//sync_printf("NULL, currpid=%d, quantum_c: %d, state: %d\n", currpid, quantum_counter, ptold->prstate);
@@ -293,9 +305,16 @@ qid16 demote(pid32 pid) {
 }
 
 void boost_priority(void) {
-	intmask mask;
-	mask = disable();
-	
+	quantum_counter = 0;
+	preempt = QUANTUM;
+
+	struct	procent	*prptr;
+	prptr = &proctab[currpid];
+	if(prptr->prstate == PR_CURR) {
+		prptr->prstate = PR_READY;
+		enqueue(currpid, prptr->queue);
+	}
+
 	qid16 tail = queuetail(readylist_med);												//find head
 	qid16 it = firstid(readylist_med);	
 	qid16 next;
@@ -323,8 +342,7 @@ void boost_priority(void) {
 	// 	enqueue(currpid, readylist_high);
 	// }
 
-	int i = 0;
-	struct	procent	*prptr;	
+	int i = 0;	
 	while(i < NPROC) {
 		prptr = &proctab[i];
 		if(prptr->queue != readylist_service){
@@ -338,16 +356,12 @@ void boost_priority(void) {
 		i++;
 	}
 
-	prptr = &proctab[currpid];
-	if(prptr->prstate == PR_CURR) {
-		prptr->prstate = PR_READY;
-		enqueue(currpid, readylist_high);
-	}
-
 	quantum_counter = 0;
 	preempt = QUANTUM;
-
+	boost = 0;
+	sync_call = TRUE;
+	//resched();
 	//reenable interrupts
-	restore(mask);
+	//restore(mask);
 	return;
 }
