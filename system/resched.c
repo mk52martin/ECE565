@@ -321,9 +321,9 @@ void boost_priority(void) {
 		i++;
 	}
 
-	preempt = QUANTUM;
 	quantum_counter = 0;
-	// resched();
+	preempt = QUANTUM;
+
 	//reenable interrupts
 	restore(mask);
 	return;
