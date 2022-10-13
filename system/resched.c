@@ -42,7 +42,11 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	/* Point to process table entry for the current (old) process */
 
 	ptold = &proctab[currpid];
-
+	if(boost >= PRIORITY_BOOST_PERIOD) {
+		//sync_printf("Current Time: %d\n", ((clktime*1000) + ctr1000));
+		boost_priority();
+		boost = 0;
+	}
 	#if MLFQ
 	if(ptold->timeallotment >= TIME_ALLOTMENT) {
 		demote(currpid);
@@ -265,8 +269,13 @@ qid16 demote(pid32 pid) {
 		newq = readylist_med;
 		//sync_printf("Demote from high %d, ctxsw: %d, runtime: %d, cur time: %d.\n", pid, prptr->num_ctxsw, prptr->runtime, ((clktime*1000) + ctr1000));
 	} else if (prptr->queue == readylist_med) {
+		// if(quantum_counter % 2 == 0){
+		// 	newq = readylist_low;
+		// 	sync_printf("Demote from med %d, ctxsw: %d, runtime: %d, cur time: %d.\n", pid, prptr->num_ctxsw, prptr->runtime, ((clktime*1000) + ctr1000));
+		// } else {
+		// 	return readylist_med;
+		// }
 		newq = readylist_low;
-		//sync_printf("Demote from med %d, ctxsw: %d, runtime: %d, cur time: %d.\n", pid, prptr->num_ctxsw, prptr->runtime, ((clktime*1000) + ctr1000));
 	}
 	prptr->queue = newq;
 	quantum_counter = 0;
@@ -319,6 +328,12 @@ void boost_priority(void) {
 		}
 		prptr->timeallotment = 0;
 		i++;
+	}
+
+	prptr = &proctab[currpid];
+	if(prptr->prstate == PR_CURR) {
+		prptr->prstate = PR_READY;
+		enqueue(currpid, readylist_high);
 	}
 
 	quantum_counter = 0;

@@ -44,14 +44,14 @@ void	clkhandler()
 		}
 	}
 
-
-	if((++boost) >= PRIORITY_BOOST_PERIOD) {
-		// sync_printf("BOOST!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-		// kprintf("Current Time: %d\n", ((clktime*1000) + ctr1000));
-		boost = 0;
-		boost_priority();
-		boost = 0;
-	}
+	boost++;
+	// if((++boost) >= PRIORITY_BOOST_PERIOD) {
+	// 	// sync_printf("BOOST!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+	// 	// kprintf("Current Time: %d\n", ((clktime*1000) + ctr1000));
+	// 	boost = 0;
+	// 	boost_priority();
+	// 	boost = 0;
+	// }
 	/* Decrement the preemption counter, and reschedule when the */
 	/*   remaining time reaches zero			     */
 	if((--preempt) <= 0) { //<=
