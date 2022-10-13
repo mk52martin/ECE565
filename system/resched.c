@@ -1,5 +1,5 @@
 /* resched.c - resched, resched_cntl */
-#define DEBUG_CTXSW 	1
+#define DEBUG_CTXSW 	0
 #define MLFQ			1
 #define PRINT_READYLIST_SERVICE 	0
 #include <xinu.h>
@@ -117,7 +117,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		// 	print_queue(sleepq);
 		// }
 		currpid = 0;
-		quantum_counter = -1;
+		//quantum_counter = -1;
 	}
 	ptnew = &proctab[currpid];
 	ptnew->prstate = PR_CURR;
@@ -276,9 +276,10 @@ qid16 demote(pid32 pid) {
 	} else if (prptr->queue == readylist_med) {
 		if((!sync_call) || ((quantum_counter % 2) == 0)){
 			newq = readylist_low;
-			sync_printf("Demote from med %d, ctxsw: %d, ta: %d, pre: %d, qc: %d, sc: %d.\n", pid, prptr->num_ctxsw, prptr->timeallotment, preempt, quantum_counter, sync_call);
+			// sync_printf("Demote from med %d, ctxsw: %d, ta: %d, pre: %d, qc: %d, sc: %d.\n", pid, prptr->num_ctxsw, prptr->timeallotment, preempt, quantum_counter, sync_call);
 		} else {
-			sync_printf("No demote from med %d, ctxsw: %d, ta: %d, pre: %d, qc: %d, sc %d.\n", pid, prptr->num_ctxsw, prptr->timeallotment, preempt, quantum_counter, sync_call);
+			// sync_printf("No demote from med %d, ctxsw: %d, ta: %d, pre: %d, qc: %d, sc %d.\n", pid, prptr->num_ctxsw, prptr->timeallotment, preempt, quantum_counter, sync_call);
+			// print_ready_list();
 			return readylist_med;
 		}
 		//newq = readylist_low;
