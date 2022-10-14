@@ -29,11 +29,6 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		quantum_counter = 0;
 		sync_call = FALSE;
 	} 
-	// sync_printf("Currpid: %d, state: %d, rt: %d, ta:%d\n", currpid, proctab[currpid].prstate, proctab[currpid].runtime, proctab[currpid].timeallotment);
-	// sync_printf("Current Time: %d\n", ((clktime*1000) + ctr1000));
-	// print_ready_list();
-	// sync_printf("sleepq: ");
-	// print_queue(sleepq);
 
 	/* If rescheduling is deferred, record attempt and return */
 
@@ -60,15 +55,12 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		if(currpid != 0){
 			insert(currpid, ptold->queue, ptold->prprio);
 		} else {
-			quantum_counter = 0;				// takes  values down A LOT (mlfq1 tc3 -> ctx ~130, rt ~ 1900)
+			quantum_counter = 0;					// curr pid = 0, allow anything to run
 		}
 	} else {
-		quantum_counter = 0;				// takes  values down A LOT (mlfq1 tc3 -> ctx ~130, rt ~ 1900)
+		quantum_counter = 0;						// no current process, allow anything to run
 	}
 	//sync_printf("currpid = %d, status: %d, ptqueue = %d\n", currpid, ptold->prstate, ptold->queue);
-	// if(currpid == 4 || currpid == 5 || currpid == 6){
-	// 	print_ready_list();
-	// }
 
 	//print_ready_list();
 	//sync_printf("currpid: %d, State: %d\n", currpid, ptold->prstate);
@@ -76,53 +68,44 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	
 	// try adding a var that tracks if a process has been updated instead of using else if
 	bool8 new_p = 0;
-	if(!check_empty(readylist_service)) {
-		currpid = dequeue(readylist_service);
+	if(!check_empty(readylist_service)) {			// service highest prio
+		currpid = dequeue(readylist_service);		// RR
 		new_p = 1;
 	} 
-	if (!new_p && !check_empty(readylist_high)) {
-		currpid = dequeue(readylist_high);
+	if (!new_p && !check_empty(readylist_high)) {	// high prio 2nd
+		currpid = dequeue(readylist_high);			// RR
 		new_p = 1;
 	} 
-	if (!new_p && !check_empty(readylist_med)) {
-		if (quantum_counter % 2 == 0) {
-			currpid = dequeue(readylist_med);
+	if (!new_p && !check_empty(readylist_med)) {	// med prio next
+		if (!(quantum_counter % 2)) {				// end of time slice?
+			currpid = dequeue(readylist_med);			//RR
 			new_p = 1;
 			//kprintf("M Current Time: %d\n", ((clktime*1000) + ctr1000));
 			//sync_printf("M SW\n");
-		} else if (ptold->prstate == PR_READY) {
+		} else if (ptold->prstate == PR_READY) {	// else: return to current
 			getitem(currpid);
 			new_p = 1;
 		}
 	} 
-	if (!new_p && !check_empty(readylist_low)) {
-		if (quantum_counter % 4 == 0) {
-			currpid = dequeue(readylist_low);
+	if (!new_p && !check_empty(readylist_low)) {	// finally low
+		if (!(quantum_counter % 4)) {				// end of time slice?
+			currpid = dequeue(readylist_low);			//RR
 			//sync_printf("L Current Time: %d\n", ((clktime*1000) + ctr1000));
 			//sync_printf("L SW\n");
 			new_p = 1;
-		} else if (ptold->prstate == PR_READY) {
+		} else if (ptold->prstate == PR_READY) {	// else: return to current
 			getitem(currpid);
 			new_p = 1;
 		}
 	}
-	if(!new_p) {
-		//sync_printf("NULL, currpid=%d, quantum_c: %d, state: %d\n", currpid, quantum_counter, ptold->prstate);
-		// print_ready_list();
-		// sync_printf("sleepq: ");
-		// print_queue(sleepq);
-		// if(currpid != 0) {
-		// 	sync_printf("NULL, currpid=%d, quantum_c: %d, state: %d\n", currpid, quantum_counter, ptold->prstate);
-		// 	print_ready_list();
-		// 	print_queue(sleepq);
-		// }
+	if(!new_p) {									// if nothing else, run null
 		currpid = 0;
 		//quantum_counter = -1;
 	}
-	ptnew = &proctab[currpid];
+	ptnew = &proctab[currpid];						// get new process and set to current
 	ptnew->prstate = PR_CURR;
 	
-	if(ptnew == ptold) {
+	if(ptnew == ptold) {							// return to normal if no change in process
 		preempt = QUANTUM;
 		return;
 	}
@@ -149,7 +132,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 
 	//sync_printf("q counter: %d, q: %d->%d ", quantum_counter, ptold->queue, ptnew->queue);
 	ptnew->num_ctxsw++;	
-	quantum_counter = 0;
+	quantum_counter = 0;		// reset counter on ctxsw
 	preempt = QUANTUM;	
 	#if DEBUG_CTXSW
 	sync_printf("ctxsw::%d-%d\n", ptold->pid, ptnew->pid);
@@ -274,7 +257,7 @@ qid16 demote(pid32 pid) {
 		newq = readylist_med;
 		//sync_printf("Demote from high %d, ctxsw: %d, runtime: %d, cur time: %d.\n", pid, prptr->num_ctxsw, prptr->runtime, ((clktime*1000) + ctr1000));
 	} else if (prptr->queue == readylist_med) {
-		if((!sync_call) || ((quantum_counter % 2) == 0)){
+		if((!sync_call) || !(quantum_counter % 2)){
 			newq = readylist_low;
 			// sync_printf("Demote from med %d, ctxsw: %d, ta: %d, pre: %d, qc: %d, sc: %d.\n", pid, prptr->num_ctxsw, prptr->timeallotment, preempt, quantum_counter, sync_call);
 		} else {
@@ -286,7 +269,7 @@ qid16 demote(pid32 pid) {
 	}
 	prptr->timeallotment = 0;
 	prptr->queue = newq;
-	quantum_counter = 0;
+	//quantum_counter = 0;
 	//getitem(pid);
 	//insert(pid, newq, prptr->prprio);
 	return newq;
