@@ -24,14 +24,8 @@ void	clkhandler()
 	}
 	ctr1000 = 1000 - count1000;
 	struct	procent	*prptr = &proctab[currpid];
-	//if(prptr->prstate == PR_CURR){
 	prptr->timeallotment++;
 	prptr->runtime++;
-	// if(prptr->timeallotment > TIME_ALLOTMENT) {
-	// 	demote(currpid);
-	// 	resched();
-	// }
-	//}
 	/* Handle sleeping processes if any exist */
 
 	if(!isempty(sleepq)) {
@@ -45,13 +39,6 @@ void	clkhandler()
 	}
 
 	boost++;
-	// if((++boost) >= PRIORITY_BOOST_PERIOD) {
-	// 	// sync_printf("BOOST!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-	// 	// kprintf("Current Time: %d\n", ((clktime*1000) + ctr1000));
-	// 	boost = 0;
-	// 	boost_priority();
-	// 	boost = 0;
-	// }
 	/* Decrement the preemption counter, and reschedule when the */
 	/*   remaining time reaches zero			     */
 	if((--preempt) <= 0) { //<=

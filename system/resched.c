@@ -13,19 +13,13 @@ bool8	sync_call = FALSE;
  */
 void	resched(void)		/* Assumes interrupts are disabled	*/
 {
-	intmask mask;
-	mask = disable();
+	// intmask mask;
+	// mask = disable();
 
 	struct procent *ptold;	/* Ptr to table entry for old process	*/
 	struct procent *ptnew;	/* Ptr to table entry for new process	*/
 	sync_call = TRUE;
 	if(preempt != QUANTUM ) {
-		// if(proctab[currpid].prstate != PR_CURR){
-		// 	preempt = QUANTUM;
-		// } else if (currpid != 0){
-		// 	proctab[currpid].prstate = PR_READY;
-		// 	enqueue(currpid, proctab[currpid].queue);
-		// }
 		quantum_counter = 0;
 		sync_call = FALSE;
 	} 
@@ -53,8 +47,8 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	if(ptold->timeallotment >= TIME_ALLOTMENT) {
 		demote(currpid);
 	}
-	if (ptold->prstate == PR_CURR) {  /* Process remains eligible */
-		/* Old process will no longer remain current */
+	/*if (ptold->prstate == PR_CURR) {  //Process remains eligible
+		// old process no longer current
 		ptold->prstate = PR_READY;
 		if(currpid != 0){
 			insert(currpid, ptold->queue, ptold->prprio);
@@ -63,19 +57,43 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		}
 	} else {
 		quantum_counter = 0;				// takes  values down A LOT (mlfq1 tc3 -> ctx ~130, rt ~ 1900)
-	}
-	//sync_printf("currpid = %d, status: %d, ptqueue = %d\n", currpid, ptold->prstate, ptold->queue);
-	// if(currpid == 4 || currpid == 5 || currpid == 6){
-	// 	print_ready_list();
-	// }
+	}*/
 
-	//print_ready_list();
-	//sync_printf("currpid: %d, State: %d\n", currpid, ptold->prstate);
 
 	
-	// try adding a var that tracks if a process has been updated instead of using else if
 	bool8 new_p = 0;
-	if(!check_empty(readylist_service)) {
+
+	if(sync_call && ptold->prstate == PR_CURR) {
+		if(ptold->queue == readylist_med && (quantum_counter % 2)) {
+			new_p = 1;
+		}
+		if(ptold->queue == readylist_low && (quantum_counter % 4)) {
+			new_p = 1;
+		}
+	}
+
+	if (!new_p && ptold->prstate == PR_CURR) {  //Process remains eligible
+		// old process no longer current
+		ptold->prstate = PR_READY;
+		if(currpid != 0){
+			insert(currpid, ptold->queue, ptold->prprio);
+		}
+	}
+
+	if(!new_p && !check_empty(readylist_service)) {
+		currpid = dequeue(readylist_service);
+	} else if (!new_p && !check_empty(readylist_high)) {
+		currpid = dequeue(readylist_high);
+	} else if (!new_p && !check_empty(readylist_med)) {
+		currpid = dequeue(readylist_med);
+	} else if (!new_p && !check_empty(readylist_low)) {
+		currpid = dequeue(readylist_low);
+	} else if (!new_p) {
+		currpid = 0;
+	}
+
+
+	/*if(!check_empty(readylist_service)) {
 		currpid = dequeue(readylist_service);
 		new_p = 1;
 	} 
@@ -90,15 +108,15 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 			currpid = dequeue(readylist_med);
 		}
 		new_p = 1;
-		/*if ((!sync_call) || ((quantum_counter % 2) == 0)) {
-			currpid = dequeue(readylist_med);
-			new_p = 1;
-			//kprintf("M Current Time: %d\n", ((clktime*1000) + ctr1000));
-			//sync_printf("M SW\n");
-		} else if (ptold->prstate == PR_READY) {
-			getitem(currpid);
-			new_p = 1;
-		}*/
+		// if ((!sync_call) || ((quantum_counter % 2) == 0)) {
+		// 	currpid = dequeue(readylist_med);
+		// 	new_p = 1;
+		// 	//kprintf("M Current Time: %d\n", ((clktime*1000) + ctr1000));
+		// 	//sync_printf("M SW\n");
+		// } else if (ptold->prstate == PR_READY) {
+		// 	getitem(currpid);
+		// 	new_p = 1;
+		// }
 	} 
 	if (!new_p && !check_empty(readylist_low)) {
 		if(sync_call && (quantum_counter % 4) != 0) {
@@ -108,29 +126,20 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		}
 		new_p = 1;
 		
-		/*if ((!sync_call) || ((quantum_counter % 4) == 0)) {
-			currpid = dequeue(readylist_low);
-			//sync_printf("L Current Time: %d\n", ((clktime*1000) + ctr1000));
-			//sync_printf("L SW\n");
-			new_p = 1;
-		} else if (ptold->prstate == PR_READY) {
-			getitem(currpid);
-			new_p = 1;
-		}*/
-	}
-	if(!new_p) {
-		//sync_printf("NULL, currpid=%d, quantum_c: %d, state: %d\n", currpid, quantum_counter, ptold->prstate);
-		// print_ready_list();
-		// sync_printf("sleepq: ");
-		// print_queue(sleepq);
-		// if(currpid != 0) {
-		// 	sync_printf("NULL, currpid=%d, quantum_c: %d, state: %d\n", currpid, quantum_counter, ptold->prstate);
-		// 	print_ready_list();
-		// 	print_queue(sleepq);
+		// if ((!sync_call) || ((quantum_counter % 4) == 0)) {
+		// 	currpid = dequeue(readylist_low);
+		// 	//sync_printf("L Current Time: %d\n", ((clktime*1000) + ctr1000));
+		// 	//sync_printf("L SW\n");
+		// 	new_p = 1;
+		// } else if (ptold->prstate == PR_READY) {
+		// 	getitem(currpid);
+		// 	new_p = 1;
 		// }
-		currpid = 0;
-		//quantum_counter = -1;
-	}
+	}*/
+	// if(!new_p) {
+	// 	currpid = 0;
+	// }
+
 	ptnew = &proctab[currpid];
 	ptnew->prstate = PR_CURR;
 	
@@ -167,7 +176,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	sync_printf("ctxsw::%d-%d\n", ptold->pid, ptnew->pid);
 	#endif
 
-	restore(mask);
+	//restore(mask);
 
 	ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
 	
@@ -286,7 +295,7 @@ qid16 demote(pid32 pid) {
 		newq = readylist_med;
 		//sync_printf("Demote from high %d, ctxsw: %d, runtime: %d, cur time: %d.\n", pid, prptr->num_ctxsw, prptr->runtime, ((clktime*1000) + ctr1000));
 	} else if (prptr->queue == readylist_med) {
-		if((!sync_call) || ((quantum_counter % 2) == 0)){
+		if((!sync_call) || !(quantum_counter % 2)){
 			newq = readylist_low;
 			// sync_printf("Demote from med %d, ctxsw: %d, ta: %d, pre: %d, qc: %d, sc: %d.\n", pid, prptr->num_ctxsw, prptr->timeallotment, preempt, quantum_counter, sync_call);
 		} else {
@@ -298,7 +307,7 @@ qid16 demote(pid32 pid) {
 	}
 	prptr->timeallotment = 0;
 	prptr->queue = newq;
-	quantum_counter = 0;
+	//quantum_counter = 0;
 	//getitem(pid);
 	//insert(pid, newq, prptr->prprio);
 	return newq;
@@ -337,10 +346,6 @@ void boost_priority(void) {
 		it = next;		
 	}
 
-	// if(proctab[currpid].queue != readylist_service && proctab[currpid].prstate == PR_CURR){
-	// 	proctab[currpid].prstate = PR_READY;
-	// 	enqueue(currpid, readylist_high);
-	// }
 
 	int i = 0;	
 	while(i < NPROC) {
