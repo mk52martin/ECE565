@@ -296,6 +296,13 @@ void boost_priority(void) {
 	intmask mask;
 	mask = disable();
 	
+	struct	procent	*prptr;	
+	prptr = &proctab[currpid];
+	if(prptr->prstate == PR_CURR) {
+		prptr->prstate = PR_READY;
+		enqueue(currpid, prptr->queue);
+	}
+
 	qid16 tail = queuetail(readylist_med);												//find head
 	qid16 it = firstid(readylist_med);	
 	qid16 next;
@@ -324,24 +331,13 @@ void boost_priority(void) {
 	// }
 
 	int i = 0;
-	struct	procent	*prptr;	
 	while(i < NPROC) {
 		prptr = &proctab[i];
 		if(prptr->queue != readylist_service){
-			// if(prptr->prstate == PR_READY) {
-			// 	getitem(i);
-			// 	insert(i, readylist_high, prptr->prprio);
-			// }
 			prptr->queue = readylist_high;
 		}
 		prptr->timeallotment = 0;
 		i++;
-	}
-
-	prptr = &proctab[currpid];
-	if(prptr->prstate == PR_CURR) {
-		prptr->prstate = PR_READY;
-		enqueue(currpid, readylist_high);
 	}
 
 	quantum_counter = 0;
