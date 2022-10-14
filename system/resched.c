@@ -135,7 +135,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	quantum_counter = 0;		// reset counter on ctxsw
 	preempt = QUANTUM;	
 	#if DEBUG_CTXSW
-	sync_printf("ctxsw::%d-%d\n", ptold->pid, ptnew->pid);
+	sync_printf("ctxsw::%d-%d (%d, %d)\n", ptold->pid, ptnew->pid, ptold->runtime, ((clktime*1000) + ctr1000));
 	#endif
 
 	restore(mask);
@@ -269,7 +269,7 @@ qid16 demote(pid32 pid) {
 	}
 	prptr->timeallotment = 0;
 	prptr->queue = newq;
-	//quantum_counter = 0;
+	quantum_counter = 0;
 	//getitem(pid);
 	//insert(pid, newq, prptr->prprio);
 	return newq;
@@ -283,7 +283,7 @@ void boost_priority(void) {
 	prptr = &proctab[currpid];
 	if(prptr->prstate == PR_CURR) {
 		prptr->prstate = PR_READY;
-		enqueue(currpid, prptr->queue);
+		insert(currpid, prptr->queue, prptr->prprio);
 	}
 
 	qid16 tail = queuetail(readylist_med);												//find head
