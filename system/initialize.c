@@ -79,7 +79,7 @@ void	nulluser()
 	enable();
 
 	/* Initialize the network stack and start processes */
-
+	//proctab[0].queue = readylist_service;
 	net_init();
 
 	/* Create a process to finish startup and start main */
@@ -208,7 +208,10 @@ static	void	sysinit()
 
 	/* Create a ready list for processes */
 
-	readylist = newqueue();
+	readylist_service = newqueue();
+	readylist_high = newqueue();
+	readylist_med = newqueue();
+	readylist_low = newqueue();
 
 
 	/* initialize the PCI bus */

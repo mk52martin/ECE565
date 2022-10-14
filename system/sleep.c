@@ -47,6 +47,10 @@ syscall	sleepms(
 	}
 
 	proctab[currpid].prstate = PR_SLEEP;
+	//proctab[currpid].timeallotment++;
+	// if(proctab[currpid].timeallotment >= TIME_ALLOTMENT) {
+	// 	quantum_counter = 0;
+	// }
 	resched();
 	restore(mask);
 	return OK;

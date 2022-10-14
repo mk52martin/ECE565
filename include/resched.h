@@ -1,5 +1,8 @@
 /* resched.h */
 
+#define TIME_ALLOTMENT 			15
+#define PRIORITY_BOOST_PERIOD	100
+
 /* Constants and variables related to deferred rescheduling */
 
 #define	DEFER_START	1	/* Start deferred rescehduling		*/

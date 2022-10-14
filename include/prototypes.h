@@ -43,6 +43,7 @@ extern	syscall	control(did32, int32, int32, int32);
 
 /* in file create.c */
 extern	pid32	create(void *, uint32, pri16, char *, uint32, ...);
+extern	pid32	create_user_process(void *, uint32,char	*, uint32, ...);
 
 /* in file ctxsw.S */
 extern	void	ctxsw(void *, void *);
@@ -457,9 +458,18 @@ extern	umsg32	recvclr(void);
 /* in file recvtime.c */
 extern	umsg32	recvtime(int32);
 
+/* in file func.c */
+void burst_execution(uint32, uint32, uint32);
+void sync_printf(char *, ...);
+
 /* in file resched.c */
 extern	void	resched(void);
 extern	status	resched_cntl(int32);
+extern 	syscall	print_ready_list(void); 
+extern 	void	print_queue(qid16);
+extern	bool8 	check_empty(qid16);
+extern	qid16 	demote	(pid32);
+extern	void	boost_priority(void);
 
 /* in file intutils.S */
 extern	void	restore(intmask);
