@@ -2,29 +2,85 @@
 
 #include <xinu.h>
 
+syscall sync_printf(char *fmt, ...)
+{
+        intmask mask = disable();
+        void *arg = __builtin_apply_args();
+        __builtin_apply((void*)kprintf, arg, 100);
+        restore(mask);
+        return OK;
+}
+
+process increment(uint32 *x, uint32 n, sl_lock_t *mutex){
+	uint32 i, j;	
+	for (i=0; i<n; i++){
+		sl_lock(mutex);
+		(*x)+=1;
+		for (j=0; j<1000; j++);
+		yield();
+		sl_unlock(mutex);
+	}
+	return OK;
+}
+
+process nthreads(uint32 nt, uint32 *x, uint32 n, sl_lock_t *mutex){
+	pid32 pids[nt];
+	int i;	
+	for (i=0; i < nt; i++){
+		pids[i] = create((void *)increment, INITSTK, 1,"p", 3, x, n, mutex);
+		if (pids[i]==SYSERR){
+			kprintf("nthreads():: ERROR - could not create process");
+			return SYSERR;
+		}
+	}
+	for (i=0; i < nt; i++){
+		if (resume(pids[i]) == SYSERR){
+			kprintf("nthreads():: ERROR - could not resume process");
+			return SYSERR;
+		}
+	}
+	for (i=0; i < nt; i++)  {
+		receive();
+		//sync_printf("%d fin\n", i);
+	}
+	return OK;
+}
+
 process	main(void)
 {
-	pid32	shpid;		/* Shell process ID */
+	uint32 x;			// shared variable
+	unsigned nt;			// number of threads cooperating
+	unsigned value = 1000; 		// target value of variable
+	sl_lock_t mutex;  		// mutex	
 
-	printf("\n\n");
+	kprintf("\n\n=====     Testing the SPINLOCK's implementation     =====\n");
 
-	/* Create a local file system on the RAM disk */
+	// 10 threads
+	kprintf("\n\n================= TEST 1 = 10 threads ===================\n");
+	x = 0;	nt = 10;
+ 	sl_initlock(&mutex); 
+	resume(create((void *)nthreads, INITSTK, 1,"nthreads", 4, nt, &x, value/nt, &mutex));
+	receive(); 
+	sync_printf("%d threads, n=%d, target value=%d\n", nt, value, x);
+	if (x==value) kprintf("TEST PASSED.\n"); else kprintf("TEST FAILED.\n");
 
-	lfscreate(RAM0, 40, 20480);
+	// 20 threads
+        kprintf("\n\n================= TEST 2 = 20 threads ===================\n");
+        x = 0;  nt = 20;
+ 	sl_initlock(&mutex); 
+        resume(create((void *)nthreads, INITSTK, 1,"nthreads", 4, nt, &x, value/nt, &mutex));
+        receive();
+	sync_printf("%d threads, n=%d, target value=%d\n", nt, value, x);
+        if (x==value) kprintf("TEST PASSED.\n"); else kprintf("TEST FAILED.\n");
 
-	/* Run the Xinu shell */
+	// 50 threads
+        kprintf("\n\n================= TEST 3 = 50 threads ===================\n");
+        x = 0;  nt = 50;
+ 	sl_initlock(&mutex); 
+        resume(create((void *)nthreads, INITSTK, 1,"nthreads", 4, nt, &x, value/nt, &mutex));
+        receive();
+	sync_printf("%d threads, n=%d, target value=%d\n", nt, value, x);
+        if (x==value) kprintf("TEST PASSED.\n"); else kprintf("TEST FAILED.\n");
 
-	recvclr();
-	resume(shpid = create(shell, 8192, 50, "shell", 1, CONSOLE));
-
-	/* Wait for shell to exit and recreate it */
-
-	while (TRUE) {
-	    if (receive() == shpid) {
-		sleepms(200);
-		kprintf("\n\nMain process recreating shell\n\n");
-		resume(shpid = create(shell, 4096, 20, "shell", 1, CONSOLE));
-	    }
-	}
 	return OK;
 }

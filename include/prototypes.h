@@ -47,6 +47,14 @@ extern	pid32	create(void *, uint32, pri16, char *, uint32, ...);
 /* in file ctxsw.S */
 extern	void	ctxsw(void *, void *);
 
+/* in file test_and_set.S */
+extern 	uint32 test_and_set(uint32 *ptr, uint32 new_value);
+
+/* in file spinlock.c */
+extern syscall sl_initlock(sl_lock_t *l);
+extern syscall sl_lock(sl_lock_t *l);
+extern syscall sl_unlock(sl_lock_t *l);
+
 /* in file dhcp.c */
 extern	uint32	getlocalip(void);
 
