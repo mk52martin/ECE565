@@ -53,6 +53,7 @@ struct procent {		/* Entry in the process table		*/
 	bool8	prhasmsg;	/* Nonzero iff msg is valid		*/
 	int16	prdesc[NDESC];	/* Device descriptors for process	*/
 	bool8	park_flag;	/* Indicates process is about to park	*/
+	uint32	runtime;	/* Runtime of process (active)			*/
 };
 
 /* Marker for the top of a process stack (used to help detect overflow)	*/
