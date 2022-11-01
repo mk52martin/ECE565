@@ -11,21 +11,21 @@ syscall sync_printf(char *fmt, ...)
         return OK;
 }
 
-process increment(uint32 *x, uint32 n, sl_lock_t *mutex){
+process increment(uint32 *x, uint32 n, lock_t *mutex){
 	uint32 i, j;	
 	for (i=0; i<n; i++){
-		sl_lock(mutex);
+		lock(mutex);
 		(*x)+=1;
 		for (j=0; j<1000; j++);
 		yield();
-		sl_unlock(mutex);
+		unlock(mutex);
 	}
 	return OK;
 }
 
-process nthreads(uint32 nt, uint32 *x, uint32 n, sl_lock_t *mutex){
+process nthreads(uint32 nt, uint32 *x, uint32 n, lock_t *mutex){
 	pid32 pids[nt];
-	int i;	
+	int i;
 	for (i=0; i < nt; i++){
 		pids[i] = create((void *)increment, INITSTK, 1,"p", 3, x, n, mutex);
 		if (pids[i]==SYSERR){
@@ -41,7 +41,7 @@ process nthreads(uint32 nt, uint32 *x, uint32 n, sl_lock_t *mutex){
 	}
 	for (i=0; i < nt; i++)  {
 		receive();
-		//sync_printf("%d fin\n", i);
+		//kprintf("%d fin\n", i);
 	}
 	return OK;
 }
@@ -50,15 +50,16 @@ process	main(void)
 {
 	uint32 x;			// shared variable
 	unsigned nt;			// number of threads cooperating
-	unsigned value = 1000; 		// target value of variable
-	sl_lock_t mutex;  		// mutex	
+	unsigned value = 10000; 	// target value of variable
 
-	kprintf("\n\n=====     Testing the SPINLOCK's implementation     =====\n");
+	lock_t mutex;  			// lock
+
+	kprintf("\n\n=====       Testing the LOCK w/ sleep&guard         =====\n");
 
 	// 10 threads
 	kprintf("\n\n================= TEST 1 = 10 threads ===================\n");
 	x = 0;	nt = 10;
- 	sl_initlock(&mutex); 
+ 	initlock(&mutex); 
 	resume(create((void *)nthreads, INITSTK, 1,"nthreads", 4, nt, &x, value/nt, &mutex));
 	receive(); 
 	sync_printf("%d threads, n=%d, target value=%d\n", nt, value, x);
@@ -67,7 +68,7 @@ process	main(void)
 	// 20 threads
         kprintf("\n\n================= TEST 2 = 20 threads ===================\n");
         x = 0;  nt = 20;
- 	sl_initlock(&mutex); 
+ 	initlock(&mutex); 
         resume(create((void *)nthreads, INITSTK, 1,"nthreads", 4, nt, &x, value/nt, &mutex));
         receive();
 	sync_printf("%d threads, n=%d, target value=%d\n", nt, value, x);
@@ -76,7 +77,7 @@ process	main(void)
 	// 50 threads
         kprintf("\n\n================= TEST 3 = 50 threads ===================\n");
         x = 0;  nt = 50;
- 	sl_initlock(&mutex); 
+ 	initlock(&mutex); 
         resume(create((void *)nthreads, INITSTK, 1,"nthreads", 4, nt, &x, value/nt, &mutex));
         receive();
 	sync_printf("%d threads, n=%d, target value=%d\n", nt, value, x);

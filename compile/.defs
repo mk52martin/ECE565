@@ -34,7 +34,7 @@ SYSTEM_CFILES =                                                                 
 	semcreate.c   semdelete.c   semreset.c    send.c        signal.c        \
 	signaln.c     sleep.c       stacktrace.c  suspend.c     unsleep.c       \
 	userret.c     wait.c        wakeup.c      write.c       xdone.c         \
-	yield.c       spinlock.c
+	yield.c       spinlock.c	lock.c
 
 SRC_CFILES   += ${SYSTEM_CFILES}
 SRC_SFILES   += ${SYSTEM_SFILES}

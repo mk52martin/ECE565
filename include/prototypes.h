@@ -55,6 +55,15 @@ extern syscall sl_initlock(sl_lock_t *l);
 extern syscall sl_lock(sl_lock_t *l);
 extern syscall sl_unlock(sl_lock_t *l);
 
+/* in file lock.c */
+extern syscall initlock(lock_t *);
+extern syscall lock(lock_t *);
+extern syscall unlock(lock_t *);
+extern syscall set_park(void);
+extern syscall park(void);
+extern syscall unpark(pid32);
+
+
 /* in file dhcp.c */
 extern	uint32	getlocalip(void);
 
@@ -168,6 +177,7 @@ extern	int32	sizmem(void);
 
 /* in file insert.c */
 extern	status	insert(pid32, qid16, int32);
+extern 	status inster_back (pid32, qid16);
 
 /* in file insertd.c */
 extern	status	insertd(pid32, qid16, int32);
@@ -375,6 +385,7 @@ extern	int32	quark_irq_routing(void);
 /* in file queue.c */
 extern	pid32	enqueue(pid32, qid16);
 extern	pid32	dequeue(qid16);
+extern 	pid32	pop(qid16);
 
 /* in file ramclose.c */
 extern	devcall	ramclose(struct dentry *);

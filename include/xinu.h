@@ -7,6 +7,7 @@
 #include <resched.h>
 #include <mark.h>
 #include <semaphore.h>
+#include <lock.h>
 #include <memory.h>
 #include <bufpool.h>
 #include <clock.h>
@@ -41,4 +42,3 @@
 #include <multiboot.h>
 #include <stdio.h>
 #include <string.h>
-#include <lock.h>

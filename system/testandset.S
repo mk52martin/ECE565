@@ -15,7 +15,7 @@ test_and_set:
 
 
 		movl	8(%ebp),%edi	    /* Get mem location of ptr	                */
-		movl	12(%ebp),%eax	    /* Get new value                            */
+		movl	12(%ebp),%eax	    /* Get new value (save in EAX for return)   */
         xchg    (%edi),%eax         /* atomic exchange                          */
 
 		
@@ -23,4 +23,4 @@ test_and_set:
         movl	4(%esp),%ebp	    /* Pick up ebp before restoring	interrupts  */
 		popfl			            /* Restore interrupt mask	                */
 		add	$4,%esp		            /* Skip saved value of ebp	                */
-		ret			                /* Return to new process	                */
+		ret			                /* Return to new process, ret val in EAX    */

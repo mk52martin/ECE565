@@ -50,3 +50,27 @@ pid32	dequeue(
 	queuetab[pid].qnext = EMPTY;
 	return pid;
 }
+
+pid32	pop(
+	  qid16		q		/* ID of queue to use		*/
+	)
+{
+	pid32	pid;			/* ID of process removed	*/
+	pid32	prev;
+	pid32	next;
+
+	if (isbadqid(q)) {
+		return SYSERR;
+	} else if (isempty(q)) {
+		return EMPTY;
+	}
+
+	pid = getfirst(q);
+	prev = queuetab[pid].qprev;
+	next = queuetab[pid].qnext;
+	queuetab[prev].qnext = next;
+	queuetab[next].qprev = prev;
+	queuetab[pid].qprev = EMPTY;
+	queuetab[pid].qnext = EMPTY;
+	return pid;
+}
