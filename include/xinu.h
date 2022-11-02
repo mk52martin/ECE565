@@ -2,12 +2,12 @@
 
 #include <kernel.h>
 #include <conf.h>
+#include <lock.h>
 #include <process.h>
 #include <queue.h>
 #include <resched.h>
 #include <mark.h>
 #include <semaphore.h>
-#include <lock.h>
 #include <memory.h>
 #include <bufpool.h>
 #include <clock.h>

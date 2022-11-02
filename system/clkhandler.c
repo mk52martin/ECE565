@@ -42,6 +42,7 @@ void	clkhandler()
 
 	if((--preempt) <= 0) {
 		preempt = QUANTUM;
+		//print_queue(readylist);
 		resched();
 	}
 }

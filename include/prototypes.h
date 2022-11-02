@@ -63,6 +63,13 @@ extern syscall set_park(void);
 extern syscall park(void);
 extern syscall unpark(pid32);
 
+/* in file active_lock.c	*/
+extern syscall 	al_initlock(al_lock_t *);
+extern syscall 	al_lock(al_lock_t *);
+extern syscall 	al_unlock(al_lock_t *);
+extern bool8   	al_trylock(al_lock_t *);
+extern bool8 	check_deadlock(al_lock_t *);
+extern void 	print_queue(qid16);
 
 /* in file dhcp.c */
 extern	uint32	getlocalip(void);
@@ -177,7 +184,8 @@ extern	int32	sizmem(void);
 
 /* in file insert.c */
 extern	status	insert(pid32, qid16, int32);
-extern 	status inster_back (pid32, qid16);
+extern	status	insert_single(pid32, qid16, int32);
+
 
 /* in file insertd.c */
 extern	status	insertd(pid32, qid16, int32);

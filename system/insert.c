@@ -35,32 +35,34 @@ status	insert(
 	return OK;
 }
 
-
-/*------------------------------------------------------------------------
- *  insert_back  -  Insert a process into the back of a queue
- *------------------------------------------------------------------------
- */
-status	insert_back(
+status	insert_single(
 	  pid32		pid,		/* ID of process to insert	*/
-	  qid16		q		/* ID of queue to use		*/
+	  qid16		q,		/* ID of queue to use		*/
+	  int32		key		/* Key for the inserted process	*/
 	)
 {
-	qid16	tail;			/* Runs through items in a queue*/
+	qid16	curr;			/* Runs through items in a queue*/
 	qid16	prev;			/* Holds previous node index	*/
 
 	if (isbadqid(q) || isbadpid(pid)) {
 		return SYSERR;
 	}
 
-	tail = queuetail(q);
-	prev = lastid(q);
+	curr = firstid(q);
+	while (queuetab[curr].qkey <= key) {
+		curr = queuetab[curr].qnext;
+	}
 
-	/* Insert process between curr tail and previous node */
+	/* Insert process between curr node and previous node */
 
-	queuetab[pid].qnext = tail;
+	prev = queuetab[curr].qprev;	/* Get index of previous node	*/
+	if(pid == prev || pid == curr) {
+		return OK;
+	}
+	queuetab[pid].qnext = curr;
 	queuetab[pid].qprev = prev;
-	queuetab[pid].qkey = 0;
+	queuetab[pid].qkey = key;
 	queuetab[prev].qnext = pid;
-	queuetab[tail].qprev = pid;
+	queuetab[curr].qprev = pid;
 	return OK;
 }
