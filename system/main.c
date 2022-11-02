@@ -2,11 +2,6 @@
 
 #include <xinu.h>
 
-#define N 5 // Note: 3*N+4 must be <= NALOCKS 
-
-pid32 pid[3*N+5];		// threads 
-al_lock_t mutex[3*N+5];		// mutexes
-
 syscall sync_printf(char *fmt, ...)
 {
         intmask mask = disable();
@@ -16,77 +11,76 @@ syscall sync_printf(char *fmt, ...)
         return OK;
 }
 
+uint32 get_timestamp(){
+	return ctr1000;
+}
 
 void run_for_ms(uint32 time){
 	uint32 start = proctab[currpid].runtime;
-	while ((proctab[currpid].runtime-start) < time);
+	while (proctab[currpid].runtime-start < time);
 }
 
-process p2(al_lock_t *l1, al_lock_t *l2){
-//	sync_printf("P%d:: acquiring: l1=%d l2=%d\n", currpid, l1->id, l2->id);	
-	al_lock(l1);
-	run_for_ms(1000);
-	al_lock(l2);		
-	run_for_ms(1000);
-	al_unlock(l1);
-	run_for_ms(1000);
-	al_unlock(l2);		
-	run_for_ms(1000);
+process p_spinlock(sl_lock_t *l){
+	uint32 i;
+	for (i=0; i<5; i++){
+		sl_lock(l);
+		run_for_ms(1000);
+		sl_unlock(l);		
+	}
+	return OK;
+}
+	
+process p_lock(lock_t *l){
+	uint32 i;
+	for (i=0; i<5; i++){
+		lock(l);
+		run_for_ms(1000);
+		unlock(l);		
+	}
 	return OK;
 }
 	
 process	main(void)
 {
 
-	uint32 i;
+	sl_lock_t	mutex_sl;  		
+	lock_t 		mutex;  		
+	pid32		pid1, pid2;
+	uint32 		timestamp;
+
+	kprintf("\n\n=========== TEST 1: spinlock & 2 threads  ===================\n\n");
+ 	sl_initlock(&mutex_sl); 
 	
-	/* initialize al_locks */
-	for (i=0; i<3*N+5; i++) al_initlock(&mutex[i]);
+	pid1 = create((void *)p_spinlock, INITSTK, 1,"nthreads", 1, &mutex_sl);
+	pid2 = create((void *)p_spinlock, INITSTK, 1,"nthreads", 1, &mutex_sl);
 
-	kprintf("\n\n=========== TEST for deadlocks  ===================\n\n");
-
-	/* first deadlock: 2 threads */	
-	pid[0] = create((void *)p2, INITSTK, 5, "p2", 2, &mutex[0], &mutex[1]); //5
-	pid[1] = create((void *)p2, INITSTK, 5, "p2", 2, &mutex[1], &mutex[0]); //6
-
-	/* second deadlock: N threads in sequence */
-	for (i = 2; i < N+1; i++) 	
-		pid[i] = create((void *)p2, INITSTK, 4,"p2", 2, &mutex[i], &mutex[i+1]); //7,8,9,10
-	pid[N+1] = create((void *)p2, INITSTK, 4,"p2", 2, &mutex[N+1], &mutex[2]); //11
-
-	/* third deadlock: N threads, not in sequence */
-	for (i = N+2; i < 2*N+1; i++) 	
-		pid[i] = create((void *)p2, INITSTK, 3,"p2", 2, &mutex[i], &mutex[i+1]); //12, 13, 14, 15
-	pid[2*N+1] = create((void *)p2, INITSTK, 3,"p2", 2, &mutex[2*N+1], &mutex[N+2]); //16
-
-	/* fourth deadlock: N threads - N-2 in a loop, two connected to loop but not part of it */
-	pid[2*N+2] = create((void *)p2, INITSTK, 2,"p2", 2, &mutex[2*N+2], &mutex[2*N+3]);//17
-	pid[2*N+3] = create((void *)p2, INITSTK, 2,"p2", 2, &mutex[2*N+3], &mutex[2*N+4]);//18
-	for (i = 2*N+4; i < 3*N+1; i++) 
-		pid[i] = create((void *)p2, INITSTK, 2,"p2", 2, &mutex[i-2], &mutex[i-1]); //19,20
-	pid[3*N+1] = create((void *)p2, INITSTK, 2,"p2", 2, &mutex[3*N-1], &mutex[2*N+2]); //21
-
-	/* two threads connected to existing loops but not part of them - no additional lock detected */
-	pid[3*N+2] = create((void *)p2, INITSTK, 1,"p2", 2, &mutex[1], &mutex[3*N]); //22
-	pid[3*N+3] = create((void *)p2, INITSTK, 1,"p2", 2, &mutex[3*N+1], &mutex[N]); //23
-
-	/* one thread disconnected from everybody else */	
-	pid[3*N+4] = create((void *)p2, INITSTK, 1,"p2", 2, &mutex[3*N+2], &mutex[3*N+3]); //24
-
-	/* starts all the threads  - threads of third deadlock start out-of-order*/
-	for (i = 0; i < 2*N+2; i++) 
-		if (i!=N+2 && i!=2*N) resume(pid[i]);
-	sleepms(100);
-	resume(pid[2*N]);
-	sleepms(100);
-	resume(pid[N+2]);
+	timestamp = get_timestamp();
 	
-	for (i = 2*N+2; i < 3*N+5; i++){ 
-		resume(pid[i]);
-		sleepms(5);
-	}
+	resume(pid1);
+	sleepms(500);
+	resume(pid2);		
 
-	kprintf("P%d completed\n", receive());
-	
+	receive();
+	receive();
+
+        kprintf("Time = %d ms\n", get_timestamp()-timestamp);
+        
+	kprintf("\n\n=========== TEST 2: lock w/sleep & 2 threads  ===============\n\n");
+	initlock(&mutex);
+
+        pid1 = create((void *)p_lock, INITSTK, 1,"nthreads", 1, &mutex);
+        pid2 = create((void *)p_lock, INITSTK, 1,"nthreads", 1, &mutex);
+
+        timestamp = get_timestamp();
+
+        resume(pid1);
+        sleepms(500);
+        resume(pid2);
+
+        receive();
+        receive();
+
+        kprintf("Time = %d ms\n", get_timestamp()-timestamp);
+
 	return OK;
 }
