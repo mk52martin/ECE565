@@ -60,18 +60,16 @@ syscall park() {
         //kprintf("%d parking\n", currpid);
         proctab[currpid].prstate = PR_WAIT;
         resched();
-    }
+    } 
     restore(mask);
     return OK;
 }
 
 syscall unpark(pid32 pid) {
-    //sync_printf("%d unparked\n", pid);
-    intmask mask;
-    mask = disable();
+    //intmask mask = disable();
     //kprintf("%d unparked\n", pid);
-    proctab[currpid].park_flag = FALSE;
+    proctab[pid].park_flag = FALSE;
     ready(pid);
-    restore(mask);
+    //restore(mask);
     return OK;
 }

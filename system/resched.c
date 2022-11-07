@@ -23,7 +23,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	/* Point to process table entry for the current (old) process */
 
 	ptold = &proctab[currpid];
-
+	intmask mask = disable();
 	if (ptold->prstate == PR_CURR) {  /* Process remains eligible */
 		if (ptold->prprio > firstkey(readylist)) {
 			return;
@@ -36,12 +36,14 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	}
 
 	/* Force context switch to highest priority ready process */
-
+	//sync_printf("%d-", currpid);
 	currpid = dequeue(readylist);
+	//sync_printf("%d\n", currpid);
 	ptnew = &proctab[currpid];
 	ptnew->prstate = PR_CURR;
-	//sync_printf("%d-%d\n", currpid, ptnew);
+	//print_queue(readylist);
 	preempt = QUANTUM;		/* Reset time slice for process	*/
+	restore(mask);
 	ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
 
 	/* Old process returns here when resumed */

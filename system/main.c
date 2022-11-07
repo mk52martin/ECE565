@@ -2,6 +2,13 @@
 
 #include <xinu.h>
 
+#define N 6 // Note: N must be <= NALOCKS 
+#define ACTIVE  TRUE
+#define TRY     FALSE
+
+pid32 pid[N];		        // threads 
+al_lock_t mutex[N];		// mutexes
+
 syscall sync_printf(char *fmt, ...)
 {
         intmask mask = disable();
@@ -11,76 +18,69 @@ syscall sync_printf(char *fmt, ...)
         return OK;
 }
 
-uint32 get_timestamp(){
-	return ctr1000;
-}
 
 void run_for_ms(uint32 time){
 	uint32 start = proctab[currpid].runtime;
-	while (proctab[currpid].runtime-start < time);
+	while ((proctab[currpid].runtime-start) < time);
+		//sync_printf("(%d), %d--%d\n", currpid, proctab[currpid].runtime, start);
 }
 
-process p_spinlock(sl_lock_t *l){
-	uint32 i;
-	for (i=0; i<5; i++){
-		sl_lock(l);
-		run_for_ms(1000);
-		sl_unlock(l);		
-	}
-	return OK;
-}
-	
-process p_lock(lock_t *l){
-	uint32 i;
-	for (i=0; i<5; i++){
-		lock(l);
-		run_for_ms(1000);
-		unlock(l);		
-	}
+process p2(al_lock_t *l1, al_lock_t *l2, bool8 lock_type){
+	//sync_printf("P%d:: acquiring: l1=%d l2=%d\n", currpid, l1, l2);	
+	if(lock_type){
+        sync_printf("P%d:: Regular lock.\n", currpid);
+    	run_for_ms(50);
+		al_lock(l1);
+    	run_for_ms(1000);
+		al_lock(l2);	
+    } else{
+        sync_printf("P%d:: Try lock.\n", currpid);
+		run_for_ms(50);
+		lock_l1:
+		al_lock(l1);
+		//sync_printf("%d.\n", currpid);
+    	run_for_ms(10);
+		//sync_printf("%d...\n", currpid);
+		if(!al_trylock(l2)) {
+			al_unlock(l1);
+			//sync_printf("P%d unlock\n", currpid);
+			sleepms(QUANTUM);
+			goto lock_l1;
+		}
+		//sync_printf("%d through trylock-----------------------------\n", currpid);
+    }	
+	run_for_ms(10);
+	al_unlock(l1);
+	//sync_printf("%d unlock l1\n", currpid);
+	run_for_ms(10);
+	al_unlock(l2);
+	sync_printf("P%d completed!\n", currpid);
 	return OK;
 }
 	
 process	main(void)
 {
 
-	sl_lock_t	mutex_sl;  		
-	lock_t 		mutex;  		
-	pid32		pid1, pid2;
-	uint32 		timestamp;
-
-	kprintf("\n\n=========== TEST 1: spinlock & 2 threads  ===================\n\n");
- 	sl_initlock(&mutex_sl); 
+	uint32 i;
 	
-	pid1 = create((void *)p_spinlock, INITSTK, 1,"nthreads", 1, &mutex_sl);
-	pid2 = create((void *)p_spinlock, INITSTK, 1,"nthreads", 1, &mutex_sl);
+	/* initialize al_locks */
+	for (i=0; i<N; i++) al_initlock(&mutex[i]);
 
-	timestamp = get_timestamp();
+	kprintf("\n\n=========== TEST for deadlocks  ===================\n\n");
+
+	/* first deadlock: 3 threads */	
+	pid[0] = create((void *)p2, INITSTK, 5, "p2", 3, &mutex[0], &mutex[1], ACTIVE);
+	pid[1] = create((void *)p2, INITSTK, 5, "p2", 3, &mutex[1], &mutex[2], ACTIVE);
+    pid[2] = create((void *)p2, INITSTK, 5, "p2", 3, &mutex[2], &mutex[0], ACTIVE);
+
+	/* second deadlock: but with trylock to avoid */
+	pid[3] = create((void *)p2, INITSTK, 5, "p2", 3, &mutex[3], &mutex[4], TRY);
+	pid[4] = create((void *)p2, INITSTK, 5, "p2", 3, &mutex[4], &mutex[5], TRY);
+    pid[5] = create((void *)p2, INITSTK, 5, "p2", 3, &mutex[5], &mutex[3], TRY);
+
+	/* starts all the threads */
+	for (i = 0; i < N; i++) 
+		resume(pid[i]);
 	
-	resume(pid1);
-	sleepms(500);
-	resume(pid2);		
-
-	receive();
-	receive();
-
-        kprintf("Time = %d ms\n", get_timestamp()-timestamp);
-        
-	kprintf("\n\n=========== TEST 2: lock w/sleep & 2 threads  ===============\n\n");
-	initlock(&mutex);
-
-        pid1 = create((void *)p_lock, INITSTK, 1,"nthreads", 1, &mutex);
-        pid2 = create((void *)p_lock, INITSTK, 1,"nthreads", 1, &mutex);
-
-        timestamp = get_timestamp();
-
-        resume(pid1);
-        sleepms(500);
-        resume(pid2);
-
-        receive();
-        receive();
-
-        kprintf("Time = %d ms\n", get_timestamp()-timestamp);
-
 	return OK;
 }

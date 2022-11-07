@@ -16,45 +16,43 @@ syscall al_initlock(al_lock_t *l) {
 
 syscall al_lock(al_lock_t *l) {
     proctab[currpid].waiting_lock = l;
+    //sync_printf("%d attempt lock %d\n", currpid, l);
     while(test_and_set(&l->guard, UNAVAILABLE)) {
-        //sync_printf("%d sleep\n", currpid);
         sleepms(QUANTUM);
     }
-    //sync_printf("%d grabbed guard %d\n", currpid, l);
+    //sync_printf("%d lock %d\n", currpid, l);
     if(l->flag == 0) {                          // lock not taken
         l->flag = 1;                            // take lock
         l->holding_pid = currpid;
-        //check_deadlock(l);
         l->guard = AVAILABLE;   
-        //sync_printf("-------%d grabbed lock %d\n", currpid, l);
     } else {                                    // lock taken
         if(!l->deadlocked) {
             if(check_deadlock(l)) {
                 l->deadlocked = TRUE;
             }
         }
-        //sync_printf("%d exit ded check \n", currpid);
         enqueue(currpid, l->queue);             // put current thread into lock queue
         //sync_printf("%d put into q\n", currpid);
         set_park();
-        //sync_printf("%d park set\n", currpid);
         l->guard = AVAILABLE;                   // allow other threads to proceed
         park();                                 // park
+        //sync_printf("%d unparked!\n", currpid);
     }
     return OK;
 }
 
 syscall al_unlock(al_lock_t *l) {
+    //sync_printf("**%d attempt unlock %d\n", currpid, l);
     while(test_and_set(&l->guard, UNAVAILABLE));                // loop wait 
-    //sync_printf("--%d grabbed guard to release %d\n", currpid, );    
+    //sync_printf("**%d unlocking %d\n", currpid, l); 
     if(isempty(l->queue)) {                                     // if queue empty
         l->flag = 0;                                            // release lock
         l->holding_pid = 0;
-        //sync_printf("%d no waiting\n", currpid);
+        //sync_printf("%d no waiting for unlock\n", currpid);
     } else {                                                    // else wakeup thread from queue
-        //sync_printf("%d unpark someone\n", currpid);
         pid32 next = dequeue(l->queue);
         l->holding_pid = next;
+        //sync_printf("%d unpark %d\n", currpid, next);
         unpark(next);
     }
     proctab[currpid].waiting_lock = 0;
@@ -62,17 +60,28 @@ syscall al_unlock(al_lock_t *l) {
     return OK;
 }
 
-// bool8 al_trylock(al_lock_t *l) {
-
-// }
+bool8 al_trylock(al_lock_t *l) {
+    //proctab[currpid].waiting_lock = l;
+    while(test_and_set(&l->guard, UNAVAILABLE)) {
+        sleepms(QUANTUM);
+    }
+    if(l->flag == 0) {                          // lock not taken
+        l->flag = 1;                            // take lock
+        l->holding_pid = currpid;
+        l->guard = AVAILABLE;   
+        return TRUE;
+    } else {                                    // lock taken
+        l->guard = AVAILABLE;                   // allow other threads to proceed
+        return FALSE;
+    }
+    return FALSE;
+}
 
 bool8 check_deadlock(al_lock_t *l) {
     intmask mask;
     mask = disable();
-    //kprintf("%d check dead\n", currpid);
     uint16 i = 0;
     pid32 last;
-    //qid16 q = newqueue();
     bool8 list[NPROC];
     while(i < NPROC) {
         list[i] = FALSE;
@@ -82,40 +91,31 @@ bool8 check_deadlock(al_lock_t *l) {
     al_lock_t *lock = l;
     pid32 pid = lock->holding_pid;
     lock = proctab[pid].waiting_lock;
-    //insert(pid, q, pid);
     list[pid] = TRUE;
-    //kprintf("Check deadlock %d, %d\n", currpid, num_al);
-    //kprintf("--%d, %d, %d\n", i, l, pid);
     while(i < num_al) {
         if(lock->deadlocked) {
+            restore(mask);
             return TRUE;
         }
         last = pid;
         pid = lock->holding_pid;
         if(pid == 0 || pid == last) {
-            //kprintf("**No deadlock %d", pid);
+            restore(mask);
             return FALSE;
         }
-        //insert_single(pid, q, pid);
         list[pid] = TRUE;
         if(pid == currpid || l == lock) {
-            //kprintf("deadlock_detected=");
-            //print_queue(q);
-            // if(!l->deadlocked) {
             print_deadlock(list);
-            //     l->deadlocked = TRUE;
-            // }
+            restore(mask);
             return TRUE;
         }
         lock = proctab[pid].waiting_lock;
         if(lock == 0) {
-            //kprintf("*No deadlock %d\n", currpid);
+            restore(mask);
             return FALSE;
         }
-        //kprintf("%d, %d, %d\n", i, l, pid);
         i++;
     }
-    //kprintf("No deadlock %d", currpid);
     restore(mask);
     return FALSE;
 }
@@ -137,7 +137,7 @@ void print_queue(qid16 q) {
 }
 
 void print_deadlock(bool8 list[NPROC]) {
-    kprintf("%d deadlock_detected=", currpid);
+    kprintf("deadlock_detected=");
     int i = 0;
     bool8 first = TRUE;
     while(i < NPROC) {
