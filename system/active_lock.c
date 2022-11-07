@@ -43,7 +43,9 @@ syscall al_lock(al_lock_t *l) {
 
 syscall al_unlock(al_lock_t *l) {
     //sync_printf("**%d attempt unlock %d\n", currpid, l);
-    while(test_and_set(&l->guard, UNAVAILABLE));                // loop wait 
+    while(test_and_set(&l->guard, UNAVAILABLE)) {
+        sleepms(QUANTUM);
+    }
     //sync_printf("**%d unlocking %d\n", currpid, l); 
     if(isempty(l->queue)) {                                     // if queue empty
         l->flag = 0;                                            // release lock
