@@ -67,7 +67,7 @@ syscall park() {
 
 syscall unpark(pid32 pid) {
     //intmask mask = disable();
-    //kprintf("%d unparked\n", pid);
+    //sync_printf("%d unparked\n", pid);
     proctab[pid].park_flag = FALSE;
     ready(pid);
     //restore(mask);

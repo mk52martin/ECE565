@@ -56,7 +56,6 @@ pid32	pop(
 	)
 {
 	pid32	pid;			/* ID of process removed	*/
-	pid32	prev;
 	pid32	next;
 
 	if (isbadqid(q)) {
@@ -66,10 +65,9 @@ pid32	pop(
 	}
 
 	pid = getfirst(q);
-	prev = queuetab[pid].qprev;
 	next = queuetab[pid].qnext;
-	queuetab[prev].qnext = next;
-	queuetab[next].qprev = prev;
+	queuetab[q].qnext = next;
+	queuetab[next].qprev = EMPTY;
 	queuetab[pid].qprev = EMPTY;
 	queuetab[pid].qnext = EMPTY;
 	return pid;

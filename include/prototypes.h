@@ -68,8 +68,16 @@ extern syscall 	al_initlock(al_lock_t *);
 extern syscall 	al_lock(al_lock_t *);
 extern syscall 	al_unlock(al_lock_t *);
 extern bool8   	al_trylock(al_lock_t *);
+extern void 	print_deadlock(bool8[NPROC]);
 extern bool8 	check_deadlock(al_lock_t *);
 extern void 	print_queue(qid16);
+
+/* in file pi_lock.c	*/
+extern syscall 	pi_initlock(pi_lock_t *);
+extern syscall 	pi_lock(pi_lock_t *);
+extern syscall 	pi_unlock(pi_lock_t *);
+extern uint32	find_highest_prio(qid16);
+extern void 	pass_down_prio(pi_lock_t *, uint32);
 
 /* in file dhcp.c */
 extern	uint32	getlocalip(void);

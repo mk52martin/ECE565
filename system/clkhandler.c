@@ -1,7 +1,7 @@
 /* clkhandler.c - clkhandler */
 
 #include <xinu.h>
-
+uint32 temp_counter;
 /*------------------------------------------------------------------------
  * clkhandler - high level clock interrupt handler
  *------------------------------------------------------------------------
@@ -42,7 +42,13 @@ void	clkhandler()
 
 	if((--preempt) <= 0) {
 		preempt = QUANTUM;
-		//print_queue(readylist);
+		// temp_counter++;
+		// if(temp_counter > 1000){
+		// 	kprintf("*%d\n", currpid);
+		// 	print_queue(test_lock->queue);
+		// 	print_queue(readylist);
+		// 	temp_counter = 0;
+		// }
 		resched();
 	}
 }

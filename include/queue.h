@@ -5,7 +5,7 @@
 /* Default # of queue entries: 1 per process plus 2 for ready list plus	*/
 /*			2 for sleep list plus 2 per semaphore		*/
 #ifndef NQENT
-#define NQENT	(NPROC + 4 + NSEM + NSEM + NLOCKS + NLOCKS + NALOCKS + NALOCKS + NSPINLOCKS + NSPINLOCKS)
+#define NQENT	(NPROC + 4 + NSEM + NSEM + NLOCKS + NLOCKS + NALOCKS + NALOCKS + NSPINLOCKS + NSPINLOCKS + NPILOCKS+ NPILOCKS)
 #endif
 
 #define	EMPTY	(-1)		/* Null value for qnext or qprev index	*/

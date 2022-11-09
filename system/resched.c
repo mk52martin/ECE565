@@ -36,9 +36,9 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	}
 
 	/* Force context switch to highest priority ready process */
-	//sync_printf("%d-", currpid);
+	// sync_printf("%d-", currpid);
 	currpid = dequeue(readylist);
-	//sync_printf("%d\n", currpid);
+	// sync_printf("%d\n", currpid);
 	ptnew = &proctab[currpid];
 	ptnew->prstate = PR_CURR;
 	//print_queue(readylist);
