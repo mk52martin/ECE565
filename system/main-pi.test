@@ -1,7 +1,7 @@
 /*  main.c  - main */
 
 #include <xinu.h>
-#ifndef main
+
 #define N 3 // Note: N must be <= NALOCKS 
 #define ACTIVE  TRUE
 #define TRY     FALSE
@@ -181,4 +181,3 @@ process	main(void)
 
 	return OK;
 }
-#endif
